@@ -31,6 +31,8 @@ import android.content.Intent;
 import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
+import com.drx.trash.botcontroll.BotController;
+import com.drx.trash.botcontroll.SwitchBot;
 
 import java.util.List;
 import java.util.UUID;
@@ -96,6 +98,12 @@ public class BluetoothLeService extends Service {
             } else {
                 Log.w(TAG, "onServicesDiscovered received: " + status);
             }
+        }
+
+        @Override
+        public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
+            Log.i(TAG, String.format("Write of characteristic %s completed with status: %d", characteristic.getUuid().toString(), status));
+            // TODO: send broadcast about write success, or store in some kind of log...
         }
 
         @Override
@@ -280,6 +288,23 @@ public class BluetoothLeService extends Service {
             return;
         }
         mBluetoothGatt.readCharacteristic(characteristic);
+    }
+
+    public void startPushing(String address) {
+        SwitchBot bot = new SwitchBot(address, "X bot");
+        BotController controller = new BotController(this, mBluetoothAdapter, bot);
+        controller.press();
+    }
+
+    void writeCharacteristic(BluetoothGattCharacteristic characteristic, byte[] data) {
+        if (mBluetoothAdapter == null || mBluetoothGatt == null) {
+            Log.w(TAG, "BluetoothAdapter not initialized");
+            return;
+        }
+        Log.i(TAG, String.format("Trying to write characteristic: %s, writeType: %d, ", characteristic.getUuid().toString(), characteristic.getWriteType()));
+
+        characteristic.setValue(data);
+        mBluetoothGatt.writeCharacteristic(characteristic);
     }
 
     /**
