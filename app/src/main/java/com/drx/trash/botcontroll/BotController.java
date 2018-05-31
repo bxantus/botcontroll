@@ -15,10 +15,16 @@ import java.util.logging.LogRecord;
 public class BotController {
     private final static String TAG = BotController.class.getSimpleName();
 
-    public BotController(Context ctx, BluetoothAdapter btAdapter, SwitchBot bot) {
+    public interface IComnmandCompleted {
+        void onCommandCompleted(boolean success);
+    }
+
+    public BotController(Context ctx, BluetoothAdapter btAdapter, SwitchBot bot, IComnmandCompleted completedCallback) {
         this.bot = bot;
         device = btAdapter.getRemoteDevice(bot.address);
         this.ctx = ctx;
+        handler = new Handler();
+        this.completedCallback = completedCallback;
     }
 
     public void press() {
@@ -40,6 +46,8 @@ public class BotController {
     Command scheduledCommand = null;
     Context ctx;
     ConnectionState connectionState = ConnectionState.Disconnected;
+    Handler handler;
+    IComnmandCompleted completedCallback;
     static final UUID switchCharacteristicId = UUID.fromString("cba20002-224d-11e6-9fb8-0002a5d5c51b");
 
 
@@ -69,7 +77,7 @@ public class BotController {
                     if (newState == BluetoothProfile.STATE_CONNECTED) {
                         connectionState = ConnectionState.Connected;
                         if (switchCharacteristic == null) {
-                            btGatt.discoverServices();
+                            gatt.discoverServices();
                         } else {
                             executeCommand(scheduledCommand);
                         }
@@ -83,7 +91,7 @@ public class BotController {
                     Log.i(TAG, String.format("Discovered services of '%s'", bot.name));
                     if (status == BluetoothGatt.GATT_SUCCESS && switchCharacteristic == null) {
 
-                        List<BluetoothGattService> services = btGatt.getServices();
+                        List<BluetoothGattService> services = gatt.getServices();
 
                         for (BluetoothGattService s : services) {
                             switchCharacteristic = s.getCharacteristic(switchCharacteristicId);
@@ -103,7 +111,17 @@ public class BotController {
                     Log.i(TAG, String.format("Command to '%s', status: %d", bot.name, status));
                     scheduledCommand = null;
 
-                    // notify success if needed
+                    // disconnect in 3 seconds
+                    handler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                           Log.i(TAG, "Disconnecting...");
+                           btGatt.disconnect();
+                           // notify success if needed
+                           if (completedCallback != null) completedCallback.onCommandCompleted(true);
+                        }
+                    }, 3000);
+
                 }
             });
         } else {

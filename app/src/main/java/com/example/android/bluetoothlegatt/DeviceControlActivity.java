@@ -17,6 +17,8 @@
 package com.example.android.bluetoothlegatt;
 
 import android.app.Activity;
+import android.app.job.JobInfo;
+import android.app.job.JobScheduler;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattService;
 import android.content.BroadcastReceiver;
@@ -27,6 +29,7 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.PersistableBundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -75,8 +78,8 @@ public class DeviceControlActivity extends Activity {
                 Log.e(TAG, "Unable to initialize Bluetooth");
                 finish();
             }
-            // Automatically connects to the device upon successful start-up initialization.
-            mBluetoothLeService.startPushing(mDeviceAddress);
+
+
         }
 
         @Override
@@ -172,6 +175,19 @@ public class DeviceControlActivity extends Activity {
         getActionBar().setDisplayHomeAsUpEnabled(true);
         Intent gattServiceIntent = new Intent(this, BluetoothLeService.class);
         bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
+
+        // schedule job
+        ComponentName scheduleService = new ComponentName(this, ScheduleService.class);
+        JobInfo.Builder builder = new JobInfo.Builder(0, scheduleService);
+        builder.setPeriodic(10 * 60 * 1000); // job scheduled for 10 minutes
+
+        PersistableBundle extras = new PersistableBundle();
+        extras.putString(ScheduleService.EXTRA_ADDRESS, mDeviceAddress);
+        extras.putString(ScheduleService.EXTRA_NAME, "X Bot");
+        builder.setExtras(extras);
+
+        JobScheduler tm = (JobScheduler) getSystemService(Context.JOB_SCHEDULER_SERVICE);
+        tm.schedule(builder.build());
     }
 
     @Override
@@ -303,5 +319,4 @@ public class DeviceControlActivity extends Activity {
         return intentFilter;
     }
 
-    // TODO: sendValue to press characteristic: 57 00 00 (uit8 probably)
 }

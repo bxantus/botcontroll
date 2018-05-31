@@ -291,9 +291,9 @@ public class BluetoothLeService extends Service {
     }
 
     public void startPushing(String address) {
-        SwitchBot bot = new SwitchBot(address, "X bot");
-        BotController controller = new BotController(this, mBluetoothAdapter, bot);
-        controller.press();
+//        SwitchBot bot = new SwitchBot(address, "X bot");
+//        BotController controller = new BotController(this, mBluetoothAdapter, bot);
+//        controller.press();
     }
 
     void writeCharacteristic(BluetoothGattCharacteristic characteristic, byte[] data) {
