@@ -83,6 +83,9 @@ public class BotController {
                         }
                     } else if(newState == BluetoothProfile.STATE_DISCONNECTED) {
                         connectionState = ConnectionState.Disconnected;
+                        if (scheduledCommand != null) {
+                            triggerCallback(false);
+                        }
                     }
                 }
 
@@ -101,6 +104,8 @@ public class BotController {
                         if (switchCharacteristic != null) {
                             Log.i(TAG, String.format("Got switchcharacteristic of '%s'", bot.name));
                             executeCommand(scheduledCommand);
+                        } else {
+                            triggerCallback(false);
                         }
                     }
 
@@ -115,10 +120,10 @@ public class BotController {
                     handler.postDelayed(new Runnable() {
                         @Override
                         public void run() {
+                           // notify success if needed
+                           triggerCallback(true);
                            Log.i(TAG, "Disconnecting...");
                            btGatt.disconnect();
-                           // notify success if needed
-                           if (completedCallback != null) completedCallback.onCommandCompleted(true);
                         }
                     }, 3000);
 
@@ -148,6 +153,13 @@ public class BotController {
             switchCharacteristic.setValue(command.data);
             btGatt.writeCharacteristic(switchCharacteristic);
             Log.i(TAG, String.format("Sent command to '%s'", bot.name));
+        }
+    }
+
+    private void triggerCallback(boolean success) {
+        if (completedCallback != null) {
+            completedCallback.onCommandCompleted(success);
+            completedCallback = null;
         }
     }
 }

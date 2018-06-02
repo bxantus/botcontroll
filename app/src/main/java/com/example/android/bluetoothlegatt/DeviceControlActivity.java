@@ -179,7 +179,7 @@ public class DeviceControlActivity extends Activity {
         // schedule job
         ComponentName scheduleService = new ComponentName(this, ScheduleService.class);
         JobInfo.Builder builder = new JobInfo.Builder(0, scheduleService);
-        builder.setPeriodic(10 * 60 * 1000); // job scheduled for 10 minutes
+        builder.setPeriodic(5 * 60 * 1000); // job scheduled for 10 minutes
 
         PersistableBundle extras = new PersistableBundle();
         extras.putString(ScheduleService.EXTRA_ADDRESS, mDeviceAddress);
