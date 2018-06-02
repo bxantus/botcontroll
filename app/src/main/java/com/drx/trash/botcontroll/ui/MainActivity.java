@@ -1,4 +1,4 @@
-package com.drx.trash.botcontroll;
+package com.drx.trash.botcontroll.ui;
 
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;

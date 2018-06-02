@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.example.android.bluetoothlegatt;
+package com.drx.trash.botcontroll.ui;
 
 import android.app.Activity;
 import android.app.ListActivity;
@@ -37,6 +37,7 @@ import android.widget.BaseAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
+import com.drx.trash.botcontroll.R;
 
 import java.util.ArrayList;
 
