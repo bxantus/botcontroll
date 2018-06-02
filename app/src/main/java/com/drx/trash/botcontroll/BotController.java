@@ -131,6 +131,7 @@ public class BotController {
                 public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
                     Log.i(TAG, String.format("Command to '%s', status: %d", bot.name, status));
                     scheduledCommand = null;
+                    BotLog.addLine(ctx, String.format("BotController: Press sent to '%s', status: %d", bot.name, status));
 
                     // disconnect in 3 seconds
                     handler.postDelayed(new Runnable() {

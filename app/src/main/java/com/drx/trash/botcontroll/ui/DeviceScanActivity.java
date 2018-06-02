@@ -148,14 +148,6 @@ public class DeviceScanActivity extends ListActivity {
     }
 
     @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        Log.i(TAG, "Destroying app, stopping jobs...");
-        JobScheduler tm = (JobScheduler) getSystemService(Context.JOB_SCHEDULER_SERVICE);
-        tm.cancelAll();
-    }
-
-    @Override
     protected void onListItemClick(ListView l, View v, int position, long id) {
         final BluetoothDevice device = mLeDeviceListAdapter.getDevice(position);
         if (device == null) return;

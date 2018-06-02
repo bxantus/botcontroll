@@ -25,17 +25,18 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.PersistableBundle;
+import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.Button;
-import android.widget.ExpandableListView;
-import android.widget.TextView;
+import android.widget.*;
 import com.drx.trash.botcontroll.BotController;
+import com.drx.trash.botcontroll.BotLog;
 import com.drx.trash.botcontroll.SwitchBot;
 import com.drx.trash.botcontroll.services.ScheduleService;
 import com.drx.trash.botcontroll.R;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class DeviceSetupActivity extends Activity {
     private final static String TAG = DeviceSetupActivity.class.getSimpleName();
@@ -45,7 +46,7 @@ public class DeviceSetupActivity extends Activity {
 
     private String mDeviceName;
     private String mDeviceAddress;
-    private ExpandableListView mGattServicesList;
+    private ListView mLogList;
     private ArrayList<ArrayList<BluetoothGattCharacteristic>> mGattCharacteristics =
             new ArrayList<ArrayList<BluetoothGattCharacteristic>>();
 
@@ -65,7 +66,7 @@ public class DeviceSetupActivity extends Activity {
 
         // Sets up UI references.
         ((TextView) findViewById(R.id.device_address)).setText(mDeviceAddress);
-        mGattServicesList = (ExpandableListView) findViewById(R.id.gatt_services_list);
+        mLogList = (ListView) findViewById(R.id.log_list);
 
         final SwitchBot bot = new SwitchBot(mDeviceAddress, mDeviceName);
         Button btnPress = (Button)findViewById(R.id.setup_press);
@@ -78,28 +79,59 @@ public class DeviceSetupActivity extends Activity {
             }
         });
 
+        Button btnRefresh = (Button)findViewById(R.id.setup_refresh_log);
+        btnRefresh.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                updateLog(BotLog.getContents(DeviceSetupActivity.this));
+            }
+        });
+
         getActionBar().setTitle(mDeviceName);
         getActionBar().setDisplayHomeAsUpEnabled(true);
 
+        CheckBox chkTimersEnabled = (CheckBox)findViewById(R.id.setup_enable_timers);
+        chkTimersEnabled.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean checked) {
+                if (checked) { // reschedule job
+                    scheduleJobs();
+                } else { // cancel jobs
+                    cancelJobs();
+                }
+            }
+        });
+
         // schedule job
-        if (false) {
-            ComponentName scheduleService = new ComponentName(this, ScheduleService.class);
-            JobInfo.Builder builder = new JobInfo.Builder(0, scheduleService);
-            builder.setPeriodic(5 * 60 * 1000); // job scheduled for 10 minutes
+        if (chkTimersEnabled.isChecked())
+            scheduleJobs();
+    }
 
-            PersistableBundle extras = new PersistableBundle();
-            extras.putString(ScheduleService.EXTRA_ADDRESS, mDeviceAddress);
-            extras.putString(ScheduleService.EXTRA_NAME, "X Bot");
-            builder.setExtras(extras);
+    private void scheduleJobs() {
+        Log.i(TAG, "scheduling jobs...");
+        ComponentName scheduleService = new ComponentName(this, ScheduleService.class);
+        JobInfo.Builder builder = new JobInfo.Builder(0, scheduleService);
+        builder.setPeriodic(5 * 60 * 1000); // job scheduled for 10 minutes
 
-            JobScheduler tm = (JobScheduler) getSystemService(Context.JOB_SCHEDULER_SERVICE);
-            tm.schedule(builder.build());
-        }
+        PersistableBundle extras = new PersistableBundle();
+        extras.putString(ScheduleService.EXTRA_ADDRESS, mDeviceAddress);
+        extras.putString(ScheduleService.EXTRA_NAME, mDeviceName);
+        builder.setExtras(extras);
+
+        JobScheduler tm = (JobScheduler) getSystemService(Context.JOB_SCHEDULER_SERVICE);
+        tm.schedule(builder.build());
+    }
+
+    private void cancelJobs() {
+        Log.i(TAG, "stopping jobs...");
+        JobScheduler tm = (JobScheduler) getSystemService(Context.JOB_SCHEDULER_SERVICE);
+        tm.cancelAll();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        updateLog(BotLog.getContents(this));
     }
 
     @Override
@@ -127,6 +159,8 @@ public class DeviceSetupActivity extends Activity {
         return super.onOptionsItemSelected(item);
     }
 
-
+    private void updateLog(List<String> logLines) {
+        mLogList.setAdapter(new ArrayAdapter<>(this,  android.R.layout.simple_list_item_1, logLines));
+    }
 
 }

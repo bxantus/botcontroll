@@ -74,7 +74,27 @@
                   android:checked="true"
         />
     </LinearLayout>
-    <ExpandableListView android:id="@+id/gatt_services_list"
+    <LinearLayout android:orientation="horizontal"
+                  android:layout_width="match_parent"
+                  android:layout_height="wrap_content"
+                  android:layout_margin="10dp">
+        <TextView android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:text="Log: "
+                  android:textSize="18sp"/>
+        <Space android:layout_width="0dp"
+               android:layout_weight="1"
+               android:layout_height="wrap_content"/>
+        <Button android:id="@+id/setup_refresh_log"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="fill_horizontal"
+                android:text="Refresh"
+        />
+    </LinearLayout>
+
+
+    <ListView android:id="@+id/log_list"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"/>
 </LinearLayout>
