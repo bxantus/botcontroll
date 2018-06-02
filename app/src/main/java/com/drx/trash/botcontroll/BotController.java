@@ -19,6 +19,22 @@ public class BotController {
         void onCommandCompleted(boolean success);
     }
 
+    public static BotController createController(Context ctx, SwitchBot bot, IComnmandCompleted completedCallback) {
+        BluetoothManager btManager = (BluetoothManager) ctx.getSystemService(Context.BLUETOOTH_SERVICE);
+        if (btManager == null) {
+            Log.e(TAG, "Unable to initialize BluetoothManager.");
+            return null;
+        }
+
+        BluetoothAdapter btAdapter = btManager.getAdapter();
+        if (btAdapter == null) {
+            Log.e(TAG, "Unable to obtain a BluetoothAdapter.");
+            return null;
+        }
+
+        return new BotController(ctx, btAdapter, bot, completedCallback);
+    }
+
     public BotController(Context ctx, BluetoothAdapter btAdapter, SwitchBot bot, IComnmandCompleted completedCallback) {
         this.bot = bot;
         device = btAdapter.getRemoteDevice(bot.address);

@@ -25,30 +25,29 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.PersistableBundle;
-import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.Button;
 import android.widget.ExpandableListView;
 import android.widget.TextView;
+import com.drx.trash.botcontroll.BotController;
+import com.drx.trash.botcontroll.SwitchBot;
 import com.drx.trash.botcontroll.services.ScheduleService;
 import com.drx.trash.botcontroll.R;
 
 import java.util.ArrayList;
 
-public class DeviceControlActivity extends Activity {
-    private final static String TAG = DeviceControlActivity.class.getSimpleName();
+public class DeviceSetupActivity extends Activity {
+    private final static String TAG = DeviceSetupActivity.class.getSimpleName();
 
     public static final String EXTRAS_DEVICE_NAME = "DEVICE_NAME";
     public static final String EXTRAS_DEVICE_ADDRESS = "DEVICE_ADDRESS";
 
-    private TextView mConnectionState;
-    private TextView mDataField;
     private String mDeviceName;
     private String mDeviceAddress;
     private ExpandableListView mGattServicesList;
     private ArrayList<ArrayList<BluetoothGattCharacteristic>> mGattCharacteristics =
             new ArrayList<ArrayList<BluetoothGattCharacteristic>>();
-    private boolean mConnected = false;
-    private BluetoothGattCharacteristic mNotifyCharacteristic;
 
     private final String LIST_NAME = "NAME";
     private final String LIST_UUID = "UUID";
@@ -58,7 +57,7 @@ public class DeviceControlActivity extends Activity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.gatt_services_characteristics);
+        setContentView(R.layout.device_setup);
 
         final Intent intent = getIntent();
         mDeviceName = intent.getStringExtra(EXTRAS_DEVICE_NAME);
@@ -67,24 +66,35 @@ public class DeviceControlActivity extends Activity {
         // Sets up UI references.
         ((TextView) findViewById(R.id.device_address)).setText(mDeviceAddress);
         mGattServicesList = (ExpandableListView) findViewById(R.id.gatt_services_list);
-        mConnectionState = (TextView) findViewById(R.id.connection_state);
-        mDataField = (TextView) findViewById(R.id.data_value);
+
+        final SwitchBot bot = new SwitchBot(mDeviceAddress, mDeviceName);
+        Button btnPress = (Button)findViewById(R.id.setup_press);
+        btnPress.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                BotController controller = BotController.createController( DeviceSetupActivity.this, bot, null);
+                if (controller != null)
+                    controller.press();
+            }
+        });
 
         getActionBar().setTitle(mDeviceName);
         getActionBar().setDisplayHomeAsUpEnabled(true);
 
         // schedule job
-        ComponentName scheduleService = new ComponentName(this, ScheduleService.class);
-        JobInfo.Builder builder = new JobInfo.Builder(0, scheduleService);
-        builder.setPeriodic(5 * 60 * 1000); // job scheduled for 10 minutes
+        if (false) {
+            ComponentName scheduleService = new ComponentName(this, ScheduleService.class);
+            JobInfo.Builder builder = new JobInfo.Builder(0, scheduleService);
+            builder.setPeriodic(5 * 60 * 1000); // job scheduled for 10 minutes
 
-        PersistableBundle extras = new PersistableBundle();
-        extras.putString(ScheduleService.EXTRA_ADDRESS, mDeviceAddress);
-        extras.putString(ScheduleService.EXTRA_NAME, "X Bot");
-        builder.setExtras(extras);
+            PersistableBundle extras = new PersistableBundle();
+            extras.putString(ScheduleService.EXTRA_ADDRESS, mDeviceAddress);
+            extras.putString(ScheduleService.EXTRA_NAME, "X Bot");
+            builder.setExtras(extras);
 
-        JobScheduler tm = (JobScheduler) getSystemService(Context.JOB_SCHEDULER_SERVICE);
-        tm.schedule(builder.build());
+            JobScheduler tm = (JobScheduler) getSystemService(Context.JOB_SCHEDULER_SERVICE);
+            tm.schedule(builder.build());
+        }
     }
 
     @Override
@@ -102,18 +112,6 @@ public class DeviceControlActivity extends Activity {
         super.onDestroy();
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.gatt_services, menu);
-        if (mConnected) {
-            menu.findItem(R.id.menu_connect).setVisible(false);
-            menu.findItem(R.id.menu_disconnect).setVisible(true);
-        } else {
-            menu.findItem(R.id.menu_connect).setVisible(true);
-            menu.findItem(R.id.menu_disconnect).setVisible(false);
-        }
-        return true;
-    }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {

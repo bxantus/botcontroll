@@ -37,17 +37,23 @@
                   android:layout_width="match_parent"
                   android:layout_height="wrap_content"
                   android:layout_margin="10dp">
-        <TextView android:layout_width="wrap_content"
-                  android:layout_height="wrap_content"
-                  android:text="@string/label_state"
-                  android:textSize="18sp"/>
-        <Space android:layout_width="5dp"
-               android:layout_height="wrap_content"/>
-        <TextView android:id="@+id/connection_state"
-                  android:layout_width="match_parent"
-                  android:layout_height="wrap_content"
-                  android:text="@string/disconnected"
-                  android:textSize="18sp"/>
+        <Button android:id="@+id/setup_press"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="fill_horizontal"
+                android:text="Press"
+        />
+        <Button android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="fill_horizontal"
+                android:text="Turn On"
+        />
+        <Button android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="fill_horizontal"
+                android:text="Turn Off"
+        />
+
     </LinearLayout>
     <LinearLayout android:orientation="horizontal"
                   android:layout_width="match_parent"
@@ -55,15 +61,18 @@
                   android:layout_margin="10dp">
         <TextView android:layout_width="wrap_content"
                   android:layout_height="wrap_content"
-                  android:text="@string/label_data"
+                  android:text="Timers: "
                   android:textSize="18sp"/>
-        <Space android:layout_width="5dp"
+        <Space android:layout_width="0dp"
+               android:layout_weight="1"
                android:layout_height="wrap_content"/>
-        <TextView android:id="@+id/data_value"
-                  android:layout_width="match_parent"
+        <CheckBox android:id="@+id/setup_enable_timers"
+                  android:layout_width="wrap_content"
                   android:layout_height="wrap_content"
-                  android:text="@string/no_data"
-                  android:textSize="18sp"/>
+                  android:text="Enabled"
+                  android:textSize="18sp"
+                  android:checked="true"
+        />
     </LinearLayout>
     <ExpandableListView android:id="@+id/gatt_services_list"
             android:layout_width="match_parent"
