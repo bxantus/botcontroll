@@ -36,6 +36,7 @@ import com.drx.trash.botcontroll.services.ScheduleService;
 import com.drx.trash.botcontroll.R;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class DeviceSetupActivity extends Activity {
@@ -160,6 +161,7 @@ public class DeviceSetupActivity extends Activity {
     }
 
     private void updateLog(List<String> logLines) {
+        Collections.reverse(logLines);
         mLogList.setAdapter(new ArrayAdapter<>(this,  android.R.layout.simple_list_item_1, logLines));
     }
 

@@ -2,6 +2,7 @@ package com.drx.trash.botcontroll;
 
 import android.bluetooth.*;
 import android.content.Context;
+import android.os.SystemClock;
 import android.util.Log;
 
 import java.util.List;
@@ -98,6 +99,9 @@ public class BotController {
                             executeCommand(scheduledCommand);
                         }
                     } else if(newState == BluetoothProfile.STATE_DISCONNECTED) {
+                        Log.i(TAG, "Closing bluetooth connection");
+                        gatt.close();
+                        btGatt = null;
                         connectionState = ConnectionState.Disconnected;
                         if (scheduledCommand != null) {
                             triggerCallback(false);
@@ -161,7 +165,18 @@ public class BotController {
         } else if (connectionState == ConnectionState.Disconnected) {
             connect(); // callbacks will handle the command
         }
-
+        // schedule disconnect for failed attempts
+        handler.removeCallbacksAndMessages(this); // remove previous disconnect request
+        handler.postAtTime(new Runnable() {
+            @Override
+            public void run() {
+                Log.d(TAG, "Close connection if needed...");
+                if (btGatt != null) {
+                    Log.i(TAG, "Disconnecting from failed...");
+                    btGatt.disconnect();
+                }
+            }
+        }, this, SystemClock.uptimeMillis() + 10000);
     }
 
     // should be in connected state and switch characteristic should be available
