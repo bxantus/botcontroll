@@ -74,11 +74,12 @@ public class DeviceSetupActivity extends Activity {
         ((TextView) findViewById(R.id.device_address)).setText(mDeviceAddress);
         mLogList = (ListView) findViewById(R.id.log_list);
 
-        final SwitchBot bot = new SwitchBot(mDeviceAddress, mDeviceName);
+
         Button btnPress = (Button)findViewById(R.id.setup_press);
         btnPress.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                final SwitchBot bot = new SwitchBot(mDeviceAddress, mDeviceName);
                 BotController controller = BotController.createController( DeviceSetupActivity.this, bot, null);
                 if (controller != null)
                     controller.press();
