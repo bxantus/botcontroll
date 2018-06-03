@@ -38,6 +38,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 import com.drx.trash.botcontroll.R;
+import com.drx.trash.botcontroll.settings.Settings;
 
 import java.util.ArrayList;
 
@@ -53,12 +54,14 @@ public class DeviceScanActivity extends ListActivity {
     private static final int REQUEST_ENABLE_BT = 1;
     // Stops scanning after 10 seconds.
     private static final long SCAN_PERIOD = 10000;
+    private Settings settings;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         getActionBar().setTitle(R.string.title_devices);
         mHandler = new Handler();
+        settings = new Settings(this);
 
         // Use this check to determine whether BLE is supported on the device.  Then you can
         // selectively disable BLE-related features.
@@ -152,7 +155,7 @@ public class DeviceScanActivity extends ListActivity {
         final BluetoothDevice device = mLeDeviceListAdapter.getDevice(position);
         if (device == null) return;
         final Intent intent = new Intent(this, DeviceSetupActivity.class);
-        intent.putExtra(DeviceSetupActivity.EXTRAS_DEVICE_NAME, device.getName());
+        intent.putExtra(DeviceSetupActivity.EXTRAS_DEVICE_NAME, getDeviceName(device));
         intent.putExtra(DeviceSetupActivity.EXTRAS_DEVICE_ADDRESS, device.getAddress());
         if (mScanning) {
             mBluetoothAdapter.stopLeScan(mLeScanCallback);
@@ -237,15 +240,21 @@ public class DeviceScanActivity extends ListActivity {
             }
 
             BluetoothDevice device = mLeDevices.get(i);
-            final String deviceName = device.getName();
-            if (deviceName != null && deviceName.length() > 0)
-                viewHolder.deviceName.setText(deviceName);
-            else
-                viewHolder.deviceName.setText(R.string.unknown_device);
+
+
+            viewHolder.deviceName.setText(getDeviceName(device));
             viewHolder.deviceAddress.setText(device.getAddress());
 
             return view;
         }
+    }
+
+    private String getDeviceName(BluetoothDevice device) {
+        String deviceName = device.getName();
+        if (deviceName == null || deviceName.length() == 0)
+            deviceName = "Unknown device"; // TODO: it could be bot + end of mac address, when only bots are found
+
+        return settings.getDeviceName(device.getAddress(), deviceName);
     }
 
     private final static String TAG = DeviceScanActivity.class.getSimpleName();

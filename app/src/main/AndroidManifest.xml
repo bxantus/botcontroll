@@ -26,7 +26,7 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-        <activity android:name=".ui.DeviceSetupActivity"/>
+        <activity android:name=".ui.DeviceSetupActivity" android:windowSoftInputMode="stateHidden"/>
 
         <service
             android:name=".services.ScheduleService"

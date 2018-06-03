@@ -25,6 +25,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.PersistableBundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
@@ -34,6 +36,7 @@ import com.drx.trash.botcontroll.BotLog;
 import com.drx.trash.botcontroll.SwitchBot;
 import com.drx.trash.botcontroll.services.ScheduleService;
 import com.drx.trash.botcontroll.R;
+import com.drx.trash.botcontroll.settings.Settings;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -50,6 +53,7 @@ public class DeviceSetupActivity extends Activity {
     private ListView mLogList;
     private ArrayList<ArrayList<BluetoothGattCharacteristic>> mGattCharacteristics =
             new ArrayList<ArrayList<BluetoothGattCharacteristic>>();
+    private Settings settings;
 
     private final String LIST_NAME = "NAME";
     private final String LIST_UUID = "UUID";
@@ -60,6 +64,7 @@ public class DeviceSetupActivity extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.device_setup);
+        settings = new Settings(this);
 
         final Intent intent = getIntent();
         mDeviceName = intent.getStringExtra(EXTRAS_DEVICE_NAME);
@@ -90,6 +95,22 @@ public class DeviceSetupActivity extends Activity {
 
         getActionBar().setTitle(mDeviceName);
         getActionBar().setDisplayHomeAsUpEnabled(true);
+
+        EditText nameEditor = (EditText)findViewById(R.id.setup_edit_device_name);
+        nameEditor.setText(mDeviceName);
+        nameEditor.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {   }
+
+            @Override
+            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+                settings.setDeviceName(mDeviceAddress, charSequence.toString());
+                mDeviceName = charSequence.toString();
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) { }
+        });
 
         CheckBox chkTimersEnabled = (CheckBox)findViewById(R.id.setup_enable_timers);
         chkTimersEnabled.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
