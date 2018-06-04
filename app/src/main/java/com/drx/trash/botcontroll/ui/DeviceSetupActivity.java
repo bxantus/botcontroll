@@ -17,6 +17,8 @@
 package com.drx.trash.botcontroll.ui;
 
 import android.app.Activity;
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.app.job.JobInfo;
 import android.app.job.JobScheduler;
 import android.bluetooth.BluetoothGattCharacteristic;
@@ -34,13 +36,12 @@ import android.widget.*;
 import com.drx.trash.botcontroll.BotController;
 import com.drx.trash.botcontroll.BotLog;
 import com.drx.trash.botcontroll.SwitchBot;
+import com.drx.trash.botcontroll.services.HandlePressService;
 import com.drx.trash.botcontroll.services.ScheduleService;
 import com.drx.trash.botcontroll.R;
 import com.drx.trash.botcontroll.settings.Settings;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 public class DeviceSetupActivity extends Activity {
     private final static String TAG = DeviceSetupActivity.class.getSimpleName();
@@ -118,16 +119,18 @@ public class DeviceSetupActivity extends Activity {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean checked) {
                 if (checked) { // reschedule job
-                    scheduleJobs();
+                    //scheduleJobs();
+                    scheduleTimers();
                 } else { // cancel jobs
                     cancelJobs();
+                    cancelTimers();
                 }
             }
         });
 
         // schedule job
         if (chkTimersEnabled.isChecked())
-            scheduleJobs();
+            scheduleTimers();
     }
 
     private void scheduleJobs() {
@@ -149,6 +152,34 @@ public class DeviceSetupActivity extends Activity {
         Log.i(TAG, "stopping jobs...");
         JobScheduler tm = (JobScheduler) getSystemService(Context.JOB_SCHEDULER_SERVICE);
         tm.cancelAll();
+    }
+
+    private void scheduleTimers() {
+        Log.i(TAG, "scheduling timers...");
+        AlarmManager alarmMgr = (AlarmManager)getSystemService(Context.ALARM_SERVICE);
+        Intent serviceIntent = new Intent(this, HandlePressService.class);
+        serviceIntent.putExtra(HandlePressService.EXTRA_ADDRESS, mDeviceAddress);
+        serviceIntent.putExtra(HandlePressService.EXTRA_NAME, mDeviceName);
+        PendingIntent alarmIntent = PendingIntent.getService(this, 0, serviceIntent, 0);
+
+        //Calendar calendar = Calendar.getInstance();
+
+        alarmMgr.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(),
+                10 * 60 * 1000, alarmIntent);
+
+        // start the Press Service
+        startService(serviceIntent);
+    }
+
+    private void cancelTimers() {
+        Log.i(TAG, "cancelling timers...");
+        AlarmManager alarmMgr = (AlarmManager)getSystemService(Context.ALARM_SERVICE);
+        Intent serviceIntent = new Intent(this, HandlePressService.class);
+        PendingIntent alarmIntent = PendingIntent.getService(this, 0, serviceIntent, 0);
+        alarmMgr.cancel(alarmIntent);
+
+        // stop HandlePressService
+        stopService(serviceIntent);
     }
 
     @Override
