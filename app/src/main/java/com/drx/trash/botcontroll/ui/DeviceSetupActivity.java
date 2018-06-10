@@ -95,6 +95,15 @@ public class DeviceSetupActivity extends Activity {
             }
         });
 
+        Button btnClearLog = (Button)findViewById(R.id.setup_clear_log);
+        btnClearLog.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                BotLog.clearLog(DeviceSetupActivity.this);
+                updateLog(BotLog.getContents(DeviceSetupActivity.this));
+            }
+        });
+
         getActionBar().setTitle(mDeviceName);
         getActionBar().setDisplayHomeAsUpEnabled(true);
 
@@ -164,11 +173,11 @@ public class DeviceSetupActivity extends Activity {
 
         //Calendar calendar = Calendar.getInstance();
 
-        alarmMgr.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(),
+        alarmMgr.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 1000,
                 10 * 60 * 1000, alarmIntent);
 
         // start the Press Service
-        startService(serviceIntent);
+        startService(new Intent(this, HandlePressService.class)); // but do not press yet
     }
 
     private void cancelTimers() {

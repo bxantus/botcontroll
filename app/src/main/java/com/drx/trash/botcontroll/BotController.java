@@ -144,7 +144,8 @@ public class BotController {
                            // notify success if needed
                            triggerCallback(true);
                            Log.i(TAG, "Disconnecting...");
-                           btGatt.disconnect();
+                           if (btGatt != null)
+                               btGatt.disconnect();
                         }
                     }, 3000);
 

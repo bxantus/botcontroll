@@ -40,7 +40,7 @@ public class HandlePressService extends Service {
             inForeground = true;
         }
 
-        if (intent != null) {
+        if (intent != null && intent.getExtras() != null) {
             String address = intent.getExtras().getString(EXTRA_ADDRESS, null);
             String name = intent.getExtras().getString(EXTRA_NAME);
 

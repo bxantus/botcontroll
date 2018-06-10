@@ -23,6 +23,7 @@ public class BotLog {
             outs.writeChars(String.format("%s %s\n", time, s));
 
             outs.close();
+            outputStream.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -38,9 +39,20 @@ public class BotLog {
                 result.add(line);
             }
         }
-        catch (FileNotFoundException e) {}
-        catch (IOException e) {}
+        catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
 
         return result;
+    }
+
+    public static void clearLog(Context ctx) {
+        try {
+            FileOutputStream outputStream = ctx.openFileOutput(fileName, 0); // this resets contents
+            outputStream.close();
+        } catch (Exception e) {}
     }
 }

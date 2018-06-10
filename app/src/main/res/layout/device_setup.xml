@@ -107,6 +107,12 @@
                 android:layout_gravity="fill_horizontal"
                 android:text="Refresh"
         />
+        <Button android:id="@+id/setup_clear_log"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="fill_horizontal"
+                android:text="Clear"
+        />
     </LinearLayout>
 
 
