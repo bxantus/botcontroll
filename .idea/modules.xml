@@ -2,8 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/BotControll.iml" filepath="$PROJECT_DIR$/.idea/modules/BotControll.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/app.iml" filepath="$PROJECT_DIR$/.idea/modules/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/botcontroll.iml" filepath="$PROJECT_DIR$/.idea/modules/botcontroll.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/botcontroll.app.iml" filepath="$PROJECT_DIR$/.idea/modules/app/botcontroll.app.iml" />
     </modules>
   </component>
 </project>
