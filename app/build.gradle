@@ -1,7 +1,13 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 24
+    compileSdkVersion 30
+    buildToolsVersion "30.0.3"
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
 
     defaultConfig {
         applicationId "com.drx.trash.botcontroll"
@@ -20,5 +26,9 @@ android {
 
 dependencies {
     testCompile 'junit:junit:4.12'
-    compile 'com.android.support:appcompat-v7:24.2.0'
+    def activity_version = "1.2.0"
+
+    // Java language implementation
+    implementation "androidx.activity:activity:$activity_version"
+
 }

@@ -16,6 +16,7 @@
 
 package com.drx.trash.botcontroll.ui;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.ListActivity;
 import android.app.job.JobScheduler;
@@ -37,6 +38,12 @@ import android.widget.BaseAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.ActivityResultCaller;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.core.content.ContextCompat;
+
 import com.drx.trash.botcontroll.R;
 import com.drx.trash.botcontroll.settings.Settings;
 
@@ -52,6 +59,7 @@ public class DeviceScanActivity extends ListActivity {
     private Handler mHandler;
 
     private static final int REQUEST_ENABLE_BT = 1;
+    private static final int REQUEST_ENABLE_LOCATION = 2;
     // Stops scanning after 10 seconds.
     private static final long SCAN_PERIOD = 10000;
     private Settings settings;
@@ -126,11 +134,21 @@ public class DeviceScanActivity extends ListActivity {
                 startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
             }
         }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            requestLocationAccess();
+        }
 
         // Initializes list view adapter.
         mLeDeviceListAdapter = new LeDeviceListAdapter();
         setListAdapter(mLeDeviceListAdapter);
         scanLeDevice(true);
+    }
+
+    protected void requestLocationAccess() {
+        ActivityResultContracts.RequestPermission request =  new ActivityResultContracts.RequestPermission();
+        Intent locationRequest = request.createIntent(this, Manifest.permission.ACCESS_FINE_LOCATION);
+        // todo: should start this somehow...
+//        startActivityForResult(locationRequest, REQUEST_ENABLE_LOCATION);
     }
 
     @Override
@@ -139,6 +157,12 @@ public class DeviceScanActivity extends ListActivity {
         if (requestCode == REQUEST_ENABLE_BT && resultCode == Activity.RESULT_CANCELED) {
             finish();
             return;
+        } else if (requestCode == REQUEST_ENABLE_LOCATION) {
+            ActivityResultContracts.RequestPermission request =  new ActivityResultContracts.RequestPermission();
+            if (!request.parseResult(resultCode, data)) {
+                finish();
+                return;
+            }
         }
         super.onActivityResult(requestCode, resultCode, data);
     }
