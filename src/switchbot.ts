@@ -62,7 +62,29 @@ function statusMessage(status:number) {
     return (StatusToMessage as any)[status]
 }
 
-class SwitchBot {
+interface HhMM {
+    hours:number
+    minutes:number
+}
+
+interface HhMMSS {
+    hours:number
+    minutes:number
+    seconds:number  
+}
+
+interface TimerSetup {
+    index:number  // timer index
+    startTime:HhMM
+    // todo: repeat, currently will repeat for each day
+    // repeat:once, daily etc.
+    mode:"daily"|"repeatForever"|"repeatSumTimes" 
+    // todo: action, currently wil be always press
+    repeatSum:number // number of times when repeatSum is seleceted
+    interval:HhMMSS // seconds will be rounded to multiple of 10
+}
+
+export class SwitchBot {
     gatt:BluetoothRemoteGATTServer
     commands:BluetoothRemoteGATTCharacteristic
     results:BluetoothRemoteGATTCharacteristic
@@ -84,6 +106,49 @@ class SwitchBot {
         await this.execute( ()=> this.commands.writeValue(pushData))
         const resp = this.results.value!
         console.log("Response: ", resp)
+        const status = resp.getUint8(0)
+        console.log("  Status: ", statusMessage(status))       
+    }
+
+    /**
+     * @param num number of timers between 0 and 5 inclusive
+     */
+    async setNumberOfTimers(num:number) {
+        console.log("Setting number of active timers: ", num)
+        const command = Uint8Array.of(
+            0x57, // magic
+            0x09, // time managament
+            0x02, // set number of timers
+            num
+        )
+        await this.execute( ()=> this.commands.writeValue(command))
+        const resp = this.results.value!
+        const status = resp.getUint8(0)
+        console.log("  Status: ", statusMessage(status))       
+    }
+
+    async setupTimer(timer:TimerSetup) {
+        console.log(`Setting up timer, starting from: ${timer.startTime.hours}:${timer.startTime.minutes}`)
+        const mode = timer.mode == "repeatForever" ? 0x02 :
+                        timer.mode == "repeatSumTimes" ? 0x01 : 0x00;
+        const command = Uint8Array.of(
+            0x57, // magic
+            0x09, // time managament
+            0x03, // setup timer task
+            0x01, // number of tasks in payload
+            timer.index,
+            0x7F, // repeat mask: bit7: 0 when repeat daily, other bits days when timer will be active
+            timer.startTime.hours,
+            timer.startTime.minutes,
+            mode,
+            0x00,  // job: 0 means press
+            timer.repeatSum,
+            timer.interval.hours,
+            timer.interval.minutes,
+            timer.interval.seconds / 10 // multiple of 10 seconds needed here
+        )
+        await this.execute( ()=> this.commands.writeValue(command))
+        const resp = this.results.value!
         const status = resp.getUint8(0)
         console.log("  Status: ", statusMessage(status))       
     }
