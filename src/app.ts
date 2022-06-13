@@ -123,6 +123,7 @@ async function displaySwitchBot(bot:SwitchBot) {
     const botModel = new BotViewModel(bot)
     
     const timersDiv = div({id:"timers"})
+    const deviceTimeDiv = div({})
 
     botContainer.replaceChildren(
         el("h3", {innerText: ()=> botModel.name}),
@@ -130,12 +131,8 @@ async function displaySwitchBot(bot:SwitchBot) {
             span({class:"status",  innerText: ()=> `Battery: ${botModel.batteryInfo}`})
         ),
         div( {id:"time"},
-            el("button", { innerText: "Get device time", onClick: ()=> botModel.refreshDeviceTime()}),
-            div({  },
-                span({  innerText: ()=> botModel.deviceTime?.device.toTimeString().substring(0, 8) ?? "n/a" }),
-                span({innerText:" at "}),
-                span( { innerText: ()=> botModel.deviceTime?.query.toTimeString().substring(0, 8) ?? ""})
-            )
+            el("button", { innerText: "Get device time", onClick: ()=> refreshDeviceTime(botModel, deviceTimeDiv) }),
+            deviceTimeDiv
         ),
         timersDiv
     )
@@ -143,6 +140,17 @@ async function displaySwitchBot(bot:SwitchBot) {
     
     // query timers
     displayTimers(botModel, timersDiv)        
+}
+
+async function refreshDeviceTime(botModel:BotViewModel, el:HTMLElement) {
+    await botModel.refreshDeviceTime()
+    if (!botModel.deviceTime) {
+        el.replaceChildren("Error getting device time")
+    } else el.replaceChildren(
+        span({  innerText: ()=> botModel.deviceTime!.device.toTimeString().substring(0, 8)}),
+        span({innerText:" at "}),
+        span( { innerText: ()=> botModel.deviceTime!.query.toTimeString().substring(0, 8)})
+    )
 }
 
 function toTimeStr(hours:number, minutes:number, seconds?:number) {
