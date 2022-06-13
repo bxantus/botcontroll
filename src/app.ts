@@ -201,19 +201,14 @@ async function displayTimers(botModel:BotViewModel, timersDiv:HTMLElement) {
     }
 }
 
-// reperesenting a timer edit operation
-class TimerEdit {
-
-}
-
 async function editTimer(idx:number, currentSetup:TimerSetup, timerDetails:HTMLElement) {
     // show editor with absolute positioning
     
     const chkTimerEnabled = el("input", { id:"timerEnabled", type: "checkbox", checked: isTimerEnabled(currentSetup) as any}) as HTMLInputElement
     const inputStartTime = el("input", { id: "startTime", type:"time", value:`${toTimeStr(currentSetup.startTime.hours, currentSetup.startTime.minutes)}`} ) as HTMLInputElement
     const selctRepeat = el("select", { id:"repeat"}, 
-        el("option", {innerText:"Daily", selected:currentSetup.repeat == "daily"}),
-        el("option", {innerText:"Once", selected:currentSetup.repeat == "once"}),
+        el("option", {innerText:"Daily", selected:currentSetup.repeat == "daily", value:"daily"}),
+        el("option", {innerText:"Once", selected:currentSetup.repeat == "once", value:"once"}),
     ) as HTMLSelectElement
     const chkRepeatCont = el("input", { id:"repeatContinously", type: "checkbox", checked: currentSetup.mode!="daily"}) as HTMLInputElement
     const inpInterval = el("input", { id: "interval", type:"text", value:`${toTimeStr(currentSetup.interval.hours, currentSetup.interval.minutes)}`} ) as HTMLInputElement
@@ -241,7 +236,25 @@ async function editTimer(idx:number, currentSetup:TimerSetup, timerDetails:HTMLE
             inpInterval
         ),
         el("button", { innerText: "Save", onClick: ()=>{
-            // update timer setup
+            // update timer setup, and timer display
+            currentSetup.startTime.hours = parseInt( inputStartTime.value.substring(0, 2))
+            currentSetup.startTime.minutes = parseInt( inputStartTime.value.substring(3))
+            if (chkTimerEnabled.checked) {
+                currentSetup.repeatDays = 0x7F
+                currentSetup.repeat = selctRepeat.value == "once" ? "once" : "daily"
+            } else {
+                currentSetup.repeat = "daily"
+                currentSetup.repeatDays = 0
+            }
+            if (chkRepeatCont.checked) {
+                currentSetup.mode = "repeatForever"
+                const intParts = inpInterval.value.split(":")
+                currentSetup.interval.minutes = parseInt(intParts[1])
+                currentSetup.interval.hours = parseInt(intParts[0])
+                currentSetup.interval.seconds = 0
+            }
+            console.log("Edited value: ", currentSetup)
+
             editDialog.remove()
         }}),
         el("button", {innerText: "Cancel", onClick: ()=> editDialog.remove()})
