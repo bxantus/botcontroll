@@ -99,6 +99,26 @@ export class SwitchBot {
         } 
     }
 
+    async getBasicInfo() {
+        console.log("Getting basic info")
+        const command = Uint8Array.of(
+            0x57/* magic */, 
+            0x02 /* get info */
+        )
+        const resp = await this.executeCommand(command)
+        const status = resp.getUint8(0)
+        console.log("  Status: ", statusMessage(status))
+        if (status != StatusOk) return
+
+        const info = {
+            batteryPercentage: resp.getUint8(1),
+            firmwareVersion: resp.getUint8(2) * 0.1,
+            numberOfTimers: resp.getUint8(8)
+        }
+        console.log(info)
+        return info
+    }
+
     async push() {
         console.log("Attempting push")
         const pushData = Uint8Array.of(0x57/* magic */, 0x01 /* command */, 0x00/* push */)

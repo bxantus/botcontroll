@@ -15,6 +15,15 @@ window.onload = ()=>{
         bot.push()
     } 
     document.body.append(
+        el("button", {
+            innerText: "Get device info",
+            onClick: async ()=> {
+                if (!bot)
+                bot = await connect()
+                if (!bot) return
+                await bot.getBasicInfo()
+            }
+        }),
         el("button", { 
             innerText: "Setup repeating timer", 
             onClick: async (ev) => {
@@ -30,6 +39,7 @@ window.onload = ()=>{
                     interval: { hours: 0, minutes: 15, seconds:0 }
                 })
             } 
-        })
+        }),
+        
     )
 }
