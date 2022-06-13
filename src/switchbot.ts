@@ -89,7 +89,6 @@ export class SwitchBot {
     commands:BluetoothRemoteGATTCharacteristic
     results:BluetoothRemoteGATTCharacteristic
     private responseResolver: (()=>void)|undefined
-    private response:Promise<void>|undefined
 
     constructor(setup:{gatt:BluetoothRemoteGATTServer, commands:BluetoothRemoteGATTCharacteristic, results:BluetoothRemoteGATTCharacteristic}) {
         this.gatt = setup.gatt
@@ -103,8 +102,8 @@ export class SwitchBot {
     async push() {
         console.log("Attempting push")
         const pushData = Uint8Array.of(0x57/* magic */, 0x01 /* command */, 0x00/* push */)
-        await this.execute( ()=> this.commands.writeValue(pushData))
-        const resp = this.results.value!
+        
+        const resp = await this.executeCommand(pushData)
         console.log("Response: ", resp)
         const status = resp.getUint8(0)
         console.log("  Status: ", statusMessage(status))       
@@ -121,8 +120,8 @@ export class SwitchBot {
             0x02, // set number of timers
             num
         )
-        await this.execute( ()=> this.commands.writeValue(command))
-        const resp = this.results.value!
+        
+        const resp = await this.executeCommand(command)
         const status = resp.getUint8(0)
         console.log("  Status: ", statusMessage(status))       
     }
@@ -147,15 +146,16 @@ export class SwitchBot {
             timer.interval.minutes,
             timer.interval.seconds / 10 // multiple of 10 seconds needed here
         )
-        await this.execute( ()=> this.commands.writeValue(command))
-        const resp = this.results.value!
+        const resp = await this.executeCommand(command)
         const status = resp.getUint8(0)
         console.log("  Status: ", statusMessage(status))       
     }
 
-    private async execute(task:()=>Promise<void>) {
-        this.response = new Promise(resolve => this.responseResolver = resolve)       
-        await task()
-        return this.response
+    private async executeCommand(command:BufferSource) {
+        const response = new Promise<void>(resolve => this.responseResolver = resolve)       
+        await this.commands.writeValue(command)
+        await response
+        this.responseResolver = undefined
+        return this.results.value!
     }
 }
