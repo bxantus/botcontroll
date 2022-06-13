@@ -179,7 +179,9 @@ async function displayTimers(botModel:BotViewModel, timersDiv:HTMLElement) {
         const timer = botModel.timers[i]
         const timerDisabled = !isTimerEnabled(timer)
         const timerDetails = div({ class:"timer"},
-            el("h4", {innerText: `${i+1}. timer ${timerDisabled ? "(disabled)": ""}`}),
+            el("h4", {innerText: `${i+1}. timer ${timerDisabled ? "(disabled)": ""}`},
+                el("button", { innerText: "Edit", onClick: ()=> editTimer(i, timer, timerDetails)})
+            ),
             el("p",
                 { innerText: `Start time: ${toTimeStr(timer.startTime.hours, timer.startTime.minutes)}` }
             ),
@@ -199,7 +201,51 @@ async function displayTimers(botModel:BotViewModel, timersDiv:HTMLElement) {
     }
 }
 
-// reperesentin ga timer edit operation
+// reperesenting a timer edit operation
 class TimerEdit {
 
+}
+
+async function editTimer(idx:number, currentSetup:TimerSetup, timerDetails:HTMLElement) {
+    // show editor with absolute positioning
+    
+    const chkTimerEnabled = el("input", { id:"timerEnabled", type: "checkbox", checked: isTimerEnabled(currentSetup) as any}) as HTMLInputElement
+    const inputStartTime = el("input", { id: "startTime", type:"time", value:`${toTimeStr(currentSetup.startTime.hours, currentSetup.startTime.minutes)}`} ) as HTMLInputElement
+    const selctRepeat = el("select", { id:"repeat"}, 
+        el("option", {innerText:"Daily", selected:currentSetup.repeat == "daily"}),
+        el("option", {innerText:"Once", selected:currentSetup.repeat == "once"}),
+    ) as HTMLSelectElement
+    const chkRepeatCont = el("input", { id:"repeatContinously", type: "checkbox", checked: currentSetup.mode!="daily"}) as HTMLInputElement
+    const inpInterval = el("input", { id: "interval", type:"text", value:`${toTimeStr(currentSetup.interval.hours, currentSetup.interval.minutes)}`} ) as HTMLInputElement
+
+    const editDialog = div({ class:"dialog"},
+        el("h3", {innerText: `Edit ${idx + 1}. timer`}),
+        div({},
+            chkTimerEnabled,
+            el("label", { innerText: "Enabled", for:"timerEnabled"})
+        ),
+        div({},
+            el("label", { innerText: "Start at", for:"startTime"}),
+            inputStartTime
+        ),
+        div({},
+            el("label", { innerText: "Repeat", for:"repeat"}),
+            selctRepeat
+        ),
+        div({},
+            chkRepeatCont,
+            el("label", { innerText: "Repeat continously", for:"repeatContinously"})
+        ),
+        div({},
+            el("label", { innerText: "Repeat interval(hh:mm)", for:"interval"}),
+            inpInterval
+        ),
+        el("button", { innerText: "Save", onClick: ()=>{
+            // update timer setup
+            editDialog.remove()
+        }}),
+        el("button", {innerText: "Cancel", onClick: ()=> editDialog.remove()})
+    )
+
+    document.body.append(editDialog)
 }
