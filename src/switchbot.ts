@@ -73,7 +73,7 @@ interface HhMMSS {
     seconds:number  
 }
 
-interface TimerSetup {
+export interface TimerSetup {
     index:number  // timer index
     startTime:HhMM
     // repeat is on by default for all days (repeat: "daily" and repeatDays: 0x7f)
@@ -85,6 +85,12 @@ interface TimerSetup {
     action?:"press"|"on"|"off"
     repeatSum:number // number of times when repeatSum is seleceted
     interval:HhMMSS // seconds will be rounded to multiple of 10
+}
+
+export function isTimerEnabled(timer:TimerSetup) {
+    // when no days are specified but the timer is in dayly repeat mode, it means it is disabled
+    // NOTE: looks like switchbot app also manipulates the mode field to 0x80 for disabled timers
+    return timer.repeat == "once" || timer.repeatDays
 }
 
 export class SwitchBot {

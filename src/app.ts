@@ -1,4 +1,4 @@
-import { connectAndSendPush, connect, SwitchBot } from "./switchbot.ts"
+import { connectAndSendPush, connect, SwitchBot, TimerSetup, isTimerEnabled } from "./switchbot.ts"
 import { el, div, span } from "../../xdom/src/xdom.ts"
 
 // currently handling only one switchBot, this can be extended if needed
@@ -43,7 +43,6 @@ window.onload = ()=>{
 
 // Tasks
 // =====
-// - display connect to switchbot prompt at start, after connected we can display the bot if we have a matching persisted id for them
 // - after bot is connected display basic info (status) (battery level, current time of device compared to our time)
 // - display current active timer tasks (when is a task considered to be set up?)
 //         a task is considered to be usable, if the repeat field is set to some other value than 0 (no execution basically)
@@ -84,6 +83,8 @@ class BotViewModel {
         device:Date // time on device
         query:Date  // time of query
     }
+    numberOfTimers = 0
+    timers:TimerSetup[] = []
 
     constructor(public bot:SwitchBot) {
 
@@ -93,6 +94,7 @@ class BotViewModel {
         const info = await this.bot.getBasicInfo()
         
         this.batteryLevel = info?.batteryPercentage
+        this.numberOfTimers = info?.numberOfTimers ?? 0
     }
 
     async refreshDeviceTime() {
@@ -110,11 +112,22 @@ class BotViewModel {
     get name() {
         return "SwitchBot (unknown)"
     }
+
+    async refreshTimers() {
+        await this.refreshStatus()
+        this.timers = []
+        for (let idx = 0; idx < this.numberOfTimers; ++idx) {
+            const info = await this.bot.getTimerInfo(idx)
+            if (info)
+                this.timers.push(info)
+        }
+    }
 }
 
-function displaySwitchBot(bot:SwitchBot) {
+async function displaySwitchBot(bot:SwitchBot) {
     const botModel = new BotViewModel(bot)
-    botModel.refreshStatus()
+    
+    const timersDiv = div({id:"timers"})
 
     botContainer.append(
         el("h3", {innerText: ()=> botModel.name}),
@@ -129,9 +142,60 @@ function displaySwitchBot(bot:SwitchBot) {
                 span( { innerText: ()=> botModel.deviceTime?.query.toTimeString().substring(0, 8) ?? ""})
             )
         ),
-        div({id:"timers"},
-                           
-        )
+        timersDiv
     )
+    await botModel.refreshStatus()
+    
+    // query timers
+    displayTimers(botModel, timersDiv)        
+}
+
+function toTimeStr(hours:number, minutes:number, seconds?:number) {
+    let res = `${hours}:`
+    if (minutes < 10) res += "0"
+    res += minutes
+    if (seconds == undefined) 
+        return res
+    res += ":"
+    if (seconds < 10) res += "0"
+    res += seconds
+    return res
+}
+
+async function displayTimers(botModel:BotViewModel, timersDiv:HTMLElement) {
+    timersDiv.innerHTML = ""
+    await botModel.refreshTimers()
+
+    if (botModel.numberOfTimers == 0) {
+        timersDiv.append("No timers active")
+        return
+    }
+
+    for (let i = 0; i < botModel.numberOfTimers; ++i) {
+        const timer = botModel.timers[i]
+        const timerDisabled = !isTimerEnabled(timer)
+        const timerDetails = div({ class:"timer"},
+            el("h4", {innerText: `${i+1}. timer ${timerDisabled ? "(disabled)": ""}`}),
+            el("p",
+                { innerText: `Start time: ${toTimeStr(timer.startTime.hours, timer.startTime.minutes)}` }
+            ),
+        )
+        timersDiv.append(timerDetails)
+        if (timerDisabled) continue;
+        timerDetails.append(
+            el("p", { innerText: `Repeat: ${timer.repeat}`})
+        )
+        // no repeat interval set
+        if (timer.mode == "daily") continue;
+        timerDetails.append(
+            el("p", { innerText: `Repeat at interval: ${toTimeStr(timer.interval.hours, timer.interval.minutes)} `},
+                span({innerText: timer.mode == "repeatForever" ? "forever" : `${timer.repeatSum} times`})
+            ),
+        )
+    }
+}
+
+// reperesentin ga timer edit operation
+class TimerEdit {
 
 }
