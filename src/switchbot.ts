@@ -76,10 +76,13 @@ interface HhMMSS {
 interface TimerSetup {
     index:number  // timer index
     startTime:HhMM
-    // todo: repeat, currently will repeat for each day
-    // repeat:once, daily etc.
+    // repeat is on by default for all days (repeat: "daily" and repeatDays: 0x7f)
+    repeat?:"once"|"daily"
+    repeatDays?:number // bitmask [6:0] indicating days from  Sun to Mon
+    // constinous mode: once daily, repeat forever at given intervalm repeat sum times
     mode:"daily"|"repeatForever"|"repeatSumTimes" 
-    // todo: action, currently wil be always press
+    // press asumed as default
+    action?:"press"|"on"|"off"
     repeatSum:number // number of times when repeatSum is seleceted
     interval:HhMMSS // seconds will be rounded to multiple of 10
 }
@@ -129,6 +132,46 @@ export class SwitchBot {
         console.log("  Status: ", statusMessage(status))       
     }
 
+    async getDeviceTime() {
+        console.log("Getting device time")
+        const command = Uint8Array.of(
+            0x57,
+            0x08, // get time info
+            0x01, // get current time
+        )
+        const resp = await this.executeCommand(command)
+        const status = resp.getUint8(0)
+        console.log("  Status: ", statusMessage(status))       
+        const timestamp = resp.getBigUint64(1) // timestamp is in uxi time, and in seconds
+        const timezoneOffset = new Date().getTimezoneOffset() * 60 * 1000 // in milliseconds
+        const currTime = new Date(Number(timestamp)  * 1000 + timezoneOffset) // convert to local time zone
+        console.log(currTime)
+        return currTime
+    }
+
+    /**
+     * NOTE: seconds part of the date will be ignored, only hh:mm is set in the device
+     */
+    async setDeviceTime(date:Date) {
+        // convert given date to UTC timezone, as the device ignores timezones
+        date = new Date(date.getTime() - date.getTimezoneOffset() * 60 * 1000)
+        console.log("Set device time: ", date.toUTCString())
+        const command = Uint8Array.of(
+            0x57,
+            0x09, // set time info
+            0x01, // set current time
+            // 8 bytes reserved for timestamp
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+        )
+        new DataView(command.buffer, command.byteOffset, command.byteLength)
+            .setBigUint64(3, BigInt(Math.round(date.getTime() / 1000))) // set time in unix epoch, counted in seconds
+        console.log("Command to set time:", command)
+        const resp = await this.executeCommand(command)
+        const status = resp.getUint8(0)
+        console.log("  Status: ", statusMessage(status))       
+    }
+
     /**
      * @param num number of timers between 0 and 5 inclusive
      */
@@ -144,6 +187,42 @@ export class SwitchBot {
         const resp = await this.executeCommand(command)
         const status = resp.getUint8(0)
         console.log("  Status: ", statusMessage(status))       
+    }
+
+    /**
+     * 
+     * @param timerIndex index of timer 0..4
+     */
+    async getTimerInfo(timerIndex:number) {
+        console.log("Getting device time")
+        const command = Uint8Array.of(
+            0x57,
+            0x08, // get time info
+            0x03 + timerIndex * 0x10, // get current time
+        )
+        const resp = await this.executeCommand(command)
+        const status = resp.getUint8(0)
+        console.log("  Response:", resp)
+        console.log("  Status: ", statusMessage(status))       
+        if (status != StatusOk) 
+            return
+        const modes = ["daily", "repeatSumTimes", "repeatForever"]
+        const actions = ["press", "on", "off"]
+        const timerInfo:TimerSetup = {
+            index: resp.getUint8(2),
+            repeat: resp.getUint8(3) & 0x80 ? "once" : "daily",
+            repeatDays: resp.getUint8(3) & 0x7f,
+            startTime: { hours: resp.getUint8(4), minutes: resp.getUint8(5) },
+            mode: modes[resp.getUint8(6)] as any,
+            action: actions[resp.getUint8(7)] as any,
+            repeatSum: resp.getUint8(8),
+            interval: {
+                hours: resp.getUint8(9),
+                minutes: resp.getUint8(10),
+                seconds: resp.getUint8(11) * 10, // seconds given in a multiple of 10
+            }
+        }
+        return timerInfo     
     }
 
     async setupTimer(timer:TimerSetup) {

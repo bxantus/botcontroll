@@ -1,16 +1,22 @@
 import { connectAndSendPush, connect, SwitchBot } from "./switchbot.ts"
 import { el, div } from "../../xdom/src/xdom.ts"
 
+let bot:SwitchBot|undefined
+
+async function ensureConnected() {
+    if (!bot)
+        bot = await connect()
+    return bot
+}
+
 window.onload = ()=>{
     console.log(navigator.bluetooth)
     const btnStart = document.getElementById("btnStart")
     if (!btnStart) return
 
-    let bot:SwitchBot|undefined
 
     btnStart.onclick = async() => {
-        if (!bot)
-            bot = await connect()
+        await ensureConnected()
         if (!bot) return
         bot.push()
     } 
@@ -18,17 +24,16 @@ window.onload = ()=>{
         el("button", {
             innerText: "Get device info",
             onClick: async ()=> {
-                if (!bot)
-                bot = await connect()
+                await ensureConnected()
                 if (!bot) return
                 await bot.getBasicInfo()
+                await bot.getDeviceTime()
             }
         }),
         el("button", { 
             innerText: "Setup repeating timer", 
             onClick: async (ev) => {
-                if (!bot)
-                bot = await connect()
+                await ensureConnected()
                 if (!bot) return
                 await bot.setNumberOfTimers(1)
                 await bot.setupTimer({
