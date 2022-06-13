@@ -2,13 +2,7 @@ import { connectAndSendPush, connect, SwitchBot, TimerSetup, isTimerEnabled } fr
 import { el, div, span } from "../../xdom/src/xdom.ts"
 
 // currently handling only one switchBot, this can be extended if needed
-let bot:SwitchBot|undefined
-
-async function ensureConnected() {
-    if (!bot)
-        bot = await connect()
-    return bot
-}
+let switchBot:SwitchBot|undefined
 
 window.onload = ()=>{
     console.log(navigator.bluetooth)
@@ -43,9 +37,6 @@ window.onload = ()=>{
 
 // Tasks
 // =====
-// - after bot is connected display basic info (status) (battery level, current time of device compared to our time)
-// - display current active timer tasks (when is a task considered to be set up?)
-//         a task is considered to be usable, if the repeat field is set to some other value than 0 (no execution basically)
 // - ability to edit current timer config (overlay edit dialog), only accept changes when there are no errors
 // - ability to add new timer (can reause the same edit dialog)
 // - display bluetooth is not available, bluetooth not enabled status when bluetooth isn't ready
@@ -65,11 +56,11 @@ function startScreen() {
 
     botContainer.append(
         el("button", {
-            innerText: "Connect to SitchBot",
+            innerText: "Connect to SwitchBot",
             onClick: async() =>{
-                const bot = await ensureConnected()
+                const bot = await connect()
+                switchBot = bot
                 if (bot) {
-                    botContainer.innerHTML = "" // clear old controls
                     displaySwitchBot(bot)
                 }
             }
@@ -125,11 +116,15 @@ class BotViewModel {
 }
 
 async function displaySwitchBot(bot:SwitchBot) {
+    botContainer.replaceChildren(
+        div({class:"connecting",  innerText: "Connecting"})
+    )
+    await bot.connect()
     const botModel = new BotViewModel(bot)
     
     const timersDiv = div({id:"timers"})
 
-    botContainer.append(
+    botContainer.replaceChildren(
         el("h3", {innerText: ()=> botModel.name}),
         div( { id: "status"}, 
             span({class:"status",  innerText: ()=> `Battery: ${botModel.batteryInfo}`})

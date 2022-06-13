@@ -33,13 +33,8 @@ export async function connect() {
     console.log("Got device: ", device)
     if (!device || !device.gatt) 
         return 
-    const gatt = await device.gatt.connect()
-    console.log("Connected to GATT")
-    const commServ = await gatt.getPrimaryService(communicationService)
-    const commands = await commServ.getCharacteristic(sendCommandCharacteristic)
-    const results = await commServ.getCharacteristic(commandResponseCharacteristic)
-    await results.startNotifications()
-    return new SwitchBot({gatt, commands, results})
+    
+    return new SwitchBot(device.gatt)
 }
 
 const StatusOk = 0x01
@@ -95,20 +90,33 @@ export function isTimerEnabled(timer:TimerSetup) {
 
 export class SwitchBot {
     gatt:BluetoothRemoteGATTServer
-    commands:BluetoothRemoteGATTCharacteristic
-    results:BluetoothRemoteGATTCharacteristic
+    commands!:BluetoothRemoteGATTCharacteristic
+    results!:BluetoothRemoteGATTCharacteristic
     private responseResolver: (()=>void)|undefined
 
-    constructor(setup:{gatt:BluetoothRemoteGATTServer, commands:BluetoothRemoteGATTCharacteristic, results:BluetoothRemoteGATTCharacteristic}) {
-        this.gatt = setup.gatt
-        this.commands = setup.commands
-        this.results = setup.results
+    constructor(gatt:BluetoothRemoteGATTServer) {
+        this.gatt = gatt 
+    }
+
+    /**
+     * Connect to the gatt server and retrive important characteristics
+     */
+    async connect() {
+        if (this.gatt.connected) return
+        console.log("Connecting to GATT...") 
+        const gatt = await this.gatt.connect()
+        console.log("Connected to GATT")
+        const commServ = await gatt.getPrimaryService(communicationService)
+        this.commands = await commServ.getCharacteristic(sendCommandCharacteristic)
+        this.results = await commServ.getCharacteristic(commandResponseCharacteristic)
+        await this.results.startNotifications()
         this.results.oncharacteristicvaluechanged = event => {
             this.responseResolver?.()
-        } 
+        }
     }
 
     async getBasicInfo() {
+        await this.connect()
         console.log("Getting basic info")
         const command = Uint8Array.of(
             0x57/* magic */, 
@@ -129,6 +137,7 @@ export class SwitchBot {
     }
 
     async push() {
+        await this.connect()
         console.log("Attempting push")
         const pushData = Uint8Array.of(0x57/* magic */, 0x01 /* command */, 0x00/* push */)
         
@@ -139,6 +148,7 @@ export class SwitchBot {
     }
 
     async getDeviceTime() {
+        await this.connect()
         console.log("Getting device time")
         const command = Uint8Array.of(
             0x57,
@@ -159,6 +169,7 @@ export class SwitchBot {
      * NOTE: seconds part of the date will be ignored, only hh:mm is set in the device
      */
     async setDeviceTime(date:Date) {
+        await this.connect()
         // convert given date to UTC timezone, as the device ignores timezones
         date = new Date(date.getTime() - date.getTimezoneOffset() * 60 * 1000)
         console.log("Set device time: ", date.toUTCString())
@@ -182,6 +193,7 @@ export class SwitchBot {
      * @param num number of timers between 0 and 5 inclusive
      */
     async setNumberOfTimers(num:number) {
+        await this.connect()
         console.log("Setting number of active timers: ", num)
         const command = Uint8Array.of(
             0x57, // magic
@@ -200,6 +212,7 @@ export class SwitchBot {
      * @param timerIndex index of timer 0..4
      */
     async getTimerInfo(timerIndex:number) {
+        await this.connect()
         console.log("Getting device time")
         const command = Uint8Array.of(
             0x57,
@@ -232,6 +245,7 @@ export class SwitchBot {
     }
 
     async setupTimer(timer:TimerSetup) {
+        await this.connect()
         console.log(`Setting up timer, starting from: ${timer.startTime.hours}:${timer.startTime.minutes}`)
         const mode = timer.mode == "repeatForever" ? 0x02 :
                         timer.mode == "repeatSumTimes" ? 0x01 : 0x00;
