@@ -166,13 +166,14 @@ function toTimeStr(hours:number, minutes:number, seconds?:number) {
 }
 
 async function displayTimers(botModel:BotViewModel, timersDiv:HTMLElement) {
-    timersDiv.innerHTML = ""
+    timersDiv.innerHTML = "Loading timers"
     await botModel.refreshTimers()
 
     if (botModel.numberOfTimers == 0) {
-        timersDiv.append("No timers active")
+        timersDiv.replaceChildren("No timers active")
         return
     }
+    timersDiv.replaceChildren()
 
     for (let i = 0; i < botModel.numberOfTimers; ++i) {
         const timer = botModel.timers[i]
