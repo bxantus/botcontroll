@@ -177,41 +177,46 @@ async function displayTimers(botModel:BotViewModel, timersDiv:HTMLElement) {
 
     for (let i = 0; i < botModel.numberOfTimers; ++i) {
         const timer = botModel.timers[i]
-        const timerDisabled = !isTimerEnabled(timer)
-        const timerDetails = div({ class:"timer"},
-            el("h4", {innerText: `${i+1}. timer ${timerDisabled ? "(disabled)": ""}`},
-                el("button", { innerText: "Edit", onClick: ()=> editTimer(i, timer, timerDetails)})
+        const timerDetails = div({ class:"timer"})
+        fillTimerDetails(timerDetails, timer, i, botModel.bot)
+        timersDiv.append(timerDetails)
+    }
+}
+
+function fillTimerDetails(timerDetails:HTMLElement, timer:TimerSetup, idx:number, bot:SwitchBot) {
+    const timerDisabled = !isTimerEnabled(timer)
+    timerDetails.replaceChildren(
+        el("h4", {innerText: `${idx+1}. timer ${timerDisabled ? "(disabled)": ""}`},
+                el("button", { innerText: "Edit", onClick: ()=> editTimer(idx, timer, timerDetails, bot)})
             ),
             el("p",
                 { innerText: `Start time: ${toTimeStr(timer.startTime.hours, timer.startTime.minutes)}` }
             ),
-        )
-        timersDiv.append(timerDetails)
-        if (timerDisabled) continue;
-        timerDetails.append(
-            el("p", { innerText: `Repeat: ${timer.repeat}`})
-        )
-        // no repeat interval set
-        if (timer.mode == "daily") continue;
-        timerDetails.append(
-            el("p", { innerText: `Repeat at interval: ${toTimeStr(timer.interval.hours, timer.interval.minutes)} `},
-                span({innerText: timer.mode == "repeatForever" ? "forever" : `${timer.repeatSum} times`})
-            ),
-        )
-    }
+    )
+    if (timerDisabled) return;
+    timerDetails.append(
+        el("p", { innerText: `Repeat: ${timer.repeat}`})
+    )
+    // no repeat interval set
+    if (timer.mode == "daily") return;
+    timerDetails.append(
+        el("p", { innerText: `Repeat at interval: ${toTimeStr(timer.interval.hours, timer.interval.minutes)} `},
+            span({innerText: timer.mode == "repeatForever" ? "forever" : `${timer.repeatSum} times`})
+        ),
+    )
 }
 
-async function editTimer(idx:number, currentSetup:TimerSetup, timerDetails:HTMLElement) {
+async function editTimer(idx:number, timer:TimerSetup, timerDetails:HTMLElement, bot:SwitchBot) {
     // show editor with absolute positioning
     
-    const chkTimerEnabled = el("input", { id:"timerEnabled", type: "checkbox", checked: isTimerEnabled(currentSetup) as any}) as HTMLInputElement
-    const inputStartTime = el("input", { id: "startTime", type:"time", value:`${toTimeStr(currentSetup.startTime.hours, currentSetup.startTime.minutes)}`} ) as HTMLInputElement
+    const chkTimerEnabled = el("input", { id:"timerEnabled", type: "checkbox", checked: isTimerEnabled(timer) as any}) as HTMLInputElement
+    const inputStartTime = el("input", { id: "startTime", type:"time", value:`${toTimeStr(timer.startTime.hours, timer.startTime.minutes)}`} ) as HTMLInputElement
     const selctRepeat = el("select", { id:"repeat"}, 
-        el("option", {innerText:"Daily", selected:currentSetup.repeat == "daily", value:"daily"}),
-        el("option", {innerText:"Once", selected:currentSetup.repeat == "once", value:"once"}),
+        el("option", {innerText:"Daily", selected:timer.repeat == "daily", value:"daily"}),
+        el("option", {innerText:"Once", selected:timer.repeat == "once", value:"once"}),
     ) as HTMLSelectElement
-    const chkRepeatCont = el("input", { id:"repeatContinously", type: "checkbox", checked: currentSetup.mode!="daily"}) as HTMLInputElement
-    const inpInterval = el("input", { id: "interval", type:"text", value:`${toTimeStr(currentSetup.interval.hours, currentSetup.interval.minutes)}`} ) as HTMLInputElement
+    const chkRepeatCont = el("input", { id:"repeatContinously", type: "checkbox", checked: timer.mode!="daily"}) as HTMLInputElement
+    const inpInterval = el("input", { id: "interval", type:"text", value:`${toTimeStr(timer.interval.hours, timer.interval.minutes)}`} ) as HTMLInputElement
 
     const editDialog = div({ class:"dialog"},
         el("h3", {innerText: `Edit ${idx + 1}. timer`}),
@@ -235,25 +240,28 @@ async function editTimer(idx:number, currentSetup:TimerSetup, timerDetails:HTMLE
             el("label", { innerText: "Repeat interval(hh:mm)", for:"interval"}),
             inpInterval
         ),
-        el("button", { innerText: "Save", onClick: ()=>{
+        el("button", { innerText: "Save", onClick: async ()=>{
             // update timer setup, and timer display
-            currentSetup.startTime.hours = parseInt( inputStartTime.value.substring(0, 2))
-            currentSetup.startTime.minutes = parseInt( inputStartTime.value.substring(3))
+            timer.startTime.hours = parseInt( inputStartTime.value.substring(0, 2))
+            timer.startTime.minutes = parseInt( inputStartTime.value.substring(3))
             if (chkTimerEnabled.checked) {
-                currentSetup.repeatDays = 0x7F
-                currentSetup.repeat = selctRepeat.value == "once" ? "once" : "daily"
+                timer.repeatDays = 0x7F
+                timer.repeat = selctRepeat.value == "once" ? "once" : "daily"
             } else {
-                currentSetup.repeat = "daily"
-                currentSetup.repeatDays = 0
+                timer.repeat = "daily"
+                timer.repeatDays = 0
             }
             if (chkRepeatCont.checked) {
-                currentSetup.mode = "repeatForever"
+                timer.mode = "repeatForever"
                 const intParts = inpInterval.value.split(":")
-                currentSetup.interval.minutes = parseInt(intParts[1])
-                currentSetup.interval.hours = parseInt(intParts[0])
-                currentSetup.interval.seconds = 0
+                timer.interval.minutes = parseInt(intParts[1])
+                timer.interval.hours = parseInt(intParts[0])
+                timer.interval.seconds = 0
             }
-            console.log("Edited value: ", currentSetup)
+            console.log("Edited value: ", timer)
+            await bot.setupTimer(timer)
+
+            fillTimerDetails(timerDetails, timer, idx, bot)
 
             editDialog.remove()
         }}),
