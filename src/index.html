@@ -22,7 +22,27 @@
 
         :root {
             --color-surface: #fcfcfc;
-            
+            position: relative;
+        }
+
+        body {
+            margin: 8px;
+        }
+
+        .dialog {
+            position: absolute;
+            background-color: #fff;
+            width: 100vw;
+            height: 100vh;
+            box-sizing: border-box;
+            top: 0;
+            left: 0;
+            padding: 8px;
+        }
+
+        .dialog > div {
+            margin-top: 10px;
+            margin-bottom: 10px;
         }
     </style>
 </head>
