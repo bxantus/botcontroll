@@ -84,8 +84,9 @@ export interface TimerSetup {
 
 export function isTimerEnabled(timer:TimerSetup) {
     // when no days are specified but the timer is in dayly repeat mode, it means it is disabled
+    // repeatDays undefined means 0x7F for daily timers, repeatDays 0, means disabled timer
     // NOTE: looks like switchbot app also manipulates the mode field to 0x80 for disabled timers
-    return timer.repeat == "once" || timer.repeatDays
+    return timer.repeat == "once" || timer.repeatDays !== 0
 }
 
 export class SwitchBot {
@@ -249,13 +250,19 @@ export class SwitchBot {
         console.log(`Setting up timer, starting from: ${timer.startTime.hours}:${timer.startTime.minutes}`)
         const mode = timer.mode == "repeatForever" ? 0x02 :
                         timer.mode == "repeatSumTimes" ? 0x01 : 0x00;
+        let repeatMask = 0;
+        if (timer.repeat == "once")
+            repeatMask = 0x80;
+        else { // considered daily by default
+            repeatMask = timer.repeatDays ?? 0x7F
+        }
         const command = Uint8Array.of(
             0x57, // magic
             0x09, // time managament
             0x03, // setup timer task
             0x01, // number of tasks in payload
             timer.index,
-            0x7F, // repeat mask: bit7: 0 when repeat daily, other bits days when timer will be active
+            repeatMask, // repeat mask: bit7: 0 when repeat daily, other bits days when timer will be active
             timer.startTime.hours,
             timer.startTime.minutes,
             mode,
