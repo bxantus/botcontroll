@@ -245,19 +245,22 @@ async function editTimer(idx:number, timer:TimerSetup, timerDetails:HTMLElement,
             timer.startTime.hours = parseInt( inputStartTime.value.substring(0, 2))
             timer.startTime.minutes = parseInt( inputStartTime.value.substring(3))
             if (chkTimerEnabled.checked) {
-                timer.repeatDays = 0x7F
+                timer.repeatDays = undefined // this will use the defaults provided
                 timer.repeat = selctRepeat.value == "once" ? "once" : "daily"
             } else {
                 timer.repeat = "daily"
                 timer.repeatDays = 0
             }
-            if (chkRepeatCont.checked) {
-                timer.mode = "repeatForever"
-                const intParts = inpInterval.value.split(":")
-                timer.interval.minutes = parseInt(intParts[1])
-                timer.interval.hours = parseInt(intParts[0])
-                timer.interval.seconds = 0
-            }
+            // mode will be set to continous repeat, only when timer is enabled, otherwise bot will trigger...
+            if (chkRepeatCont.checked && chkTimerEnabled.checked) 
+                timer.mode = "repeatForever"  
+            else 
+                timer.mode = "daily"
+            
+            const intParts = inpInterval.value.split(":")
+            timer.interval.minutes = parseInt(intParts[1])
+            timer.interval.hours = parseInt(intParts[0])
+            timer.interval.seconds = 0
             console.log("Edited value: ", timer)
             await bot.setupTimer(timer)
 
