@@ -33,7 +33,7 @@ function statusMessage(status) {
   return StatusToMessage[status];
 }
 function isTimerEnabled(timer) {
-  return timer.repeat == "once" || timer.repeatDays;
+  return timer.repeat == "once" || timer.repeatDays !== 0;
 }
 var SwitchBot = class {
   constructor(gatt) {
@@ -143,7 +143,13 @@ var SwitchBot = class {
     await this.connect();
     console.log(`Setting up timer, starting from: ${timer.startTime.hours}:${timer.startTime.minutes}`);
     const mode = timer.mode == "repeatForever" ? 2 : timer.mode == "repeatSumTimes" ? 1 : 0;
-    const command = Uint8Array.of(87, 9, 3, 1, timer.index, 127, timer.startTime.hours, timer.startTime.minutes, mode, 0, timer.repeatSum, timer.interval.hours, timer.interval.minutes, timer.interval.seconds / 10);
+    let repeatMask = 0;
+    if (timer.repeat == "once")
+      repeatMask = 128;
+    else {
+      repeatMask = timer.repeatDays ?? 127;
+    }
+    const command = Uint8Array.of(87, 9, 3, 1, timer.index, repeatMask, timer.startTime.hours, timer.startTime.minutes, mode, 0, timer.repeatSum, timer.interval.hours, timer.interval.minutes, timer.interval.seconds / 10);
     const resp = await this.executeCommand(command);
     const status = resp.getUint8(0);
     console.log("  Status: ", statusMessage(status));
@@ -521,19 +527,20 @@ async function editTimer(idx, timer, timerDetails, bot) {
     timer.startTime.hours = parseInt(inputStartTime.value.substring(0, 2));
     timer.startTime.minutes = parseInt(inputStartTime.value.substring(3));
     if (chkTimerEnabled.checked) {
-      timer.repeatDays = 127;
+      timer.repeatDays = void 0;
       timer.repeat = selctRepeat.value == "once" ? "once" : "daily";
     } else {
       timer.repeat = "daily";
       timer.repeatDays = 0;
     }
-    if (chkRepeatCont.checked) {
+    if (chkRepeatCont.checked && chkTimerEnabled.checked)
       timer.mode = "repeatForever";
-      const intParts = inpInterval.value.split(":");
-      timer.interval.minutes = parseInt(intParts[1]);
-      timer.interval.hours = parseInt(intParts[0]);
-      timer.interval.seconds = 0;
-    }
+    else
+      timer.mode = "daily";
+    const intParts = inpInterval.value.split(":");
+    timer.interval.minutes = parseInt(intParts[1]);
+    timer.interval.hours = parseInt(intParts[0]);
+    timer.interval.seconds = 0;
     console.log("Edited value: ", timer);
     await bot.setupTimer(timer);
     fillTimerDetails(timerDetails, timer, idx, bot);
