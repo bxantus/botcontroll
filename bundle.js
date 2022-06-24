@@ -474,7 +474,7 @@ function toTimeSpan(time) {
   return time.hours * 60 * 60 + time.minutes * 60 + ("seconds" in time ? time.seconds : 0);
 }
 function toEndTime(startTime, interval, times) {
-  const timeSpan = toTimeSpan(startTime) + times * toTimeSpan(interval);
+  const timeSpan = toTimeSpan(startTime) + (times - 1) * toTimeSpan(interval);
   let hours = Math.floor(timeSpan / 3600);
   let minutes = Math.floor(timeSpan % 3600 / 60);
   if (hours >= 24) {
@@ -489,7 +489,7 @@ function calcSumTimes(startTime, endTime, interval) {
   if (start > end)
     return 0;
   const int = toTimeSpan(interval);
-  return Math.floor((end - start) / int);
+  return Math.floor((end - start) / int) + 1;
 }
 function hhMMfromTimeStr(timeStr) {
   return {
