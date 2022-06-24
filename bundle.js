@@ -275,6 +275,7 @@ var Repository = class {
       this.bindings.set(obj, [binding]);
     } else
       list.push(binding);
+    return binding;
   }
   clearForObject(obj) {
     this.bindings.delete(obj);
@@ -287,15 +288,26 @@ var Repository = class {
     if (!list)
       return;
     for (const lb of list) {
-      const newVal = lb.calc();
-      if (obj[lb.prop] != newVal)
-        obj[lb.prop] = newVal;
+      updatePropValue(obj, lb);
     }
   }
 };
+function updatePropValue(obj, lb) {
+  const newVal = lb.calc();
+  if (typeof lb.prop == "object") {
+    const currentVal = lb.prop.get();
+    if (currentVal != newVal)
+      lb.prop.set(newVal);
+  } else if (obj[lb.prop] != newVal)
+    obj[lb.prop] = newVal;
+}
 function calcProperty(obj, prop, calc, repo) {
   obj[prop] = calc();
   repo?.add(obj, prop, calc);
+}
+function calcCustomProperty(obj, customProp, calc, repo) {
+  updatePropValue(obj, { prop: customProp, calc });
+  repo?.add(obj, customProp, calc);
 }
 
 // deno:file:///C:/work/xdom/src/domChanges.ts
@@ -365,7 +377,8 @@ function updateStats(timestamp) {
 
 // deno:file:///C:/work/xdom/src/xdom.ts
 function el(tagname, props, ...children) {
-  const element = document.createElement(tagname);
+  const result = document.createElement(tagname);
+  const element = result;
   if (props?.id)
     element.id = props.id;
   if (props?.class)
@@ -373,26 +386,26 @@ function el(tagname, props, ...children) {
   if (props?.innerText)
     setProperty(element, "innerText", props.innerText);
   if (props?.onClick)
-    element.onclick = props.onClick;
-  if (props?.src && element instanceof HTMLImageElement)
-    setProperty(element, "src", props.src);
-  if (element instanceof HTMLInputElement) {
-    if (props?.type)
-      element.type = props.type;
-    if (props?.checked != void 0)
-      setProperty(element, "checked", props.checked);
-  }
-  if (props?.for && element instanceof HTMLLabelElement) {
-    element.htmlFor = props.for;
-  }
-  if (props?.value && (element instanceof HTMLInputElement || element instanceof HTMLSelectElement || element instanceof HTMLOptionElement))
-    setProperty(element, "value", props.value);
-  if (props?.selected && element instanceof HTMLOptionElement) {
-    setProperty(element, "selected", props.selected);
+    element.onclick = (ev) => props.onClick.call(result, ev);
+  if (props?.visible != void 0) {
+    if (props.visible instanceof Function) {
+      const visibilityUpdater = {
+        visible: true,
+        get() {
+          return this.visible;
+        },
+        set(v) {
+          this.visible = v;
+          v ? show(element) : hide(element);
+        }
+      };
+      calcCustomProperty(element, visibilityUpdater, props.visible, lightBindings);
+    } else if (!props.visible)
+      hide();
   }
   if (children)
     element.append(...children);
-  return element;
+  return result;
 }
 function div(props, ...children) {
   return el("div", props, ...children);
@@ -400,13 +413,97 @@ function div(props, ...children) {
 function span(props, ...children) {
   return el("span", props, ...children);
 }
+function input(props, ...children) {
+  const element = el("input", props, ...children);
+  if (props.type)
+    element.type = props.type;
+  if (props.checked != void 0)
+    setProperty(element, "checked", props.checked);
+  if (props.value)
+    setProperty(element, "value", props.value);
+  if (props.onInput)
+    element.oninput = (ev) => props.onInput.call(element, ev);
+  if (props.onChange)
+    element.onchange = (ev) => props.onChange.call(element, ev);
+  return element;
+}
+function label(props, ...children) {
+  const element = el("label", props, ...children);
+  if (props?.for && element instanceof HTMLLabelElement) {
+    element.htmlFor = props.for;
+  }
+  return element;
+}
+function select(props, ...children) {
+  const element = el("select", props, ...children);
+  if (props?.value)
+    setProperty(element, "value", props.value);
+  if (props.onInput)
+    element.oninput = (ev) => props.onInput.call(element, ev);
+  if (props.onChange)
+    element.onchange = (ev) => props.onChange.call(element, ev);
+  return element;
+}
+function option(props, ...children) {
+  const element = el("option", props, ...children);
+  if (props?.selected) {
+    setProperty(element, "selected", props.selected);
+  }
+  if (props?.value)
+    setProperty(element, "value", props.value);
+  return element;
+}
 function setProperty(obj, prop, val) {
   if (val instanceof Function)
     calcProperty(obj, prop, val, lightBindings);
   else
     bind(obj, prop, val, bindingRepo);
 }
+function hide(...elements) {
+  for (const element of elements)
+    element.style.display = "none";
+}
+function show(...elements) {
+  for (const element of elements)
+    element.style.display = "";
+}
 startObservingChanges();
+
+// deno:file:///C:/work/botcontroll/src/utils.ts
+function toTimeSpan(time) {
+  return time.hours * 60 * 60 + time.minutes * 60 + ("seconds" in time ? time.seconds : 0);
+}
+function toEndTime(startTime, interval, times) {
+  const timeSpan = toTimeSpan(startTime) + times * toTimeSpan(interval);
+  let hours = Math.floor(timeSpan / 3600);
+  let minutes = Math.floor(timeSpan % 3600 / 60);
+  if (hours >= 24) {
+    hours = 23;
+    minutes = 59;
+  }
+  return { hours, minutes };
+}
+function calcSumTimes(startTime, endTime, interval) {
+  const start = toTimeSpan(startTime);
+  const end = toTimeSpan(endTime);
+  if (start > end)
+    return 0;
+  const int = toTimeSpan(interval);
+  return Math.floor((end - start) / int);
+}
+function hhMMfromTimeStr(timeStr) {
+  return {
+    hours: parseInt(timeStr.substring(0, 2)),
+    minutes: parseInt(timeStr.substring(3))
+  };
+}
+function hhMMToString(time) {
+  let res = `${time.hours}:`;
+  if (time.minutes < 10)
+    res += "0";
+  res += time.minutes;
+  return res;
+}
 
 // deno:file:///C:/work/botcontroll/src/app.ts
 var switchBot;
@@ -515,35 +612,92 @@ function fillTimerDetails(timerDetails, timer, idx, bot) {
   timerDetails.append(el("p", { innerText: `Repeat: ${timer.repeat}` }));
   if (timer.mode == "daily")
     return;
-  timerDetails.append(el("p", { innerText: `Repeat at interval: ${toTimeStr(timer.interval.hours, timer.interval.minutes)} ` }, span({ innerText: timer.mode == "repeatForever" ? "forever" : `${timer.repeatSum} times` })));
+  timerDetails.append(el("p", { innerText: `Repeat at interval: ${toTimeStr(timer.interval.hours, timer.interval.minutes)} ` }, span({ innerText: timer.mode == "repeatForever" ? "forever" : `until ${hhMMToString(toEndTime(timer.startTime, timer.interval, timer.repeatSum))}` })));
 }
 async function editTimer(idx, timer, timerDetails, bot) {
-  const chkTimerEnabled = el("input", { id: "timerEnabled", type: "checkbox", checked: isTimerEnabled(timer) });
-  const inputStartTime = el("input", { id: "startTime", type: "time", value: `${toTimeStr(timer.startTime.hours, timer.startTime.minutes)}` });
-  const selctRepeat = el("select", { id: "repeat" }, el("option", { innerText: "Daily", selected: timer.repeat == "daily", value: "daily" }), el("option", { innerText: "Once", selected: timer.repeat == "once", value: "once" }));
-  const chkRepeatCont = el("input", { id: "repeatContinously", type: "checkbox", checked: timer.mode != "daily" });
-  const inpInterval = el("input", { id: "interval", type: "text", value: `${toTimeStr(timer.interval.hours, timer.interval.minutes)}` });
-  const editDialog = div({ class: "dialog" }, el("h3", { innerText: `Edit ${idx + 1}. timer` }), div({}, chkTimerEnabled, el("label", { innerText: "Enabled", for: "timerEnabled" })), div({}, el("label", { innerText: "Start at", for: "startTime" }), inputStartTime), div({}, el("label", { innerText: "Repeat", for: "repeat" }), selctRepeat), div({}, chkRepeatCont, el("label", { innerText: "Repeat continously", for: "repeatContinously" })), div({}, el("label", { innerText: "Repeat interval(hh:mm)", for: "interval" }), inpInterval), el("button", { innerText: "Save", onClick: async () => {
-    timer.startTime.hours = parseInt(inputStartTime.value.substring(0, 2));
-    timer.startTime.minutes = parseInt(inputStartTime.value.substring(3));
-    if (chkTimerEnabled.checked) {
-      timer.repeatDays = void 0;
-      timer.repeat = selctRepeat.value == "once" ? "once" : "daily";
-    } else {
-      timer.repeat = "daily";
-      timer.repeatDays = 0;
+  const endTime = timer.repeatSum ? toEndTime(timer.startTime, timer.interval, timer.repeatSum) : { hours: timer.startTime.hours + 3, minutes: timer.startTime.minutes };
+  const timerEdit = {
+    enabled: isTimerEnabled(timer),
+    repeat: timer.repeat,
+    startTimeStr: toTimeStr(timer.startTime.hours, timer.startTime.minutes),
+    repeatContinously: timer.mode != "daily",
+    repeatInterval: toTimeStr(timer.interval.hours, timer.interval.minutes),
+    repeatMode: timer.mode,
+    endTimeStr: toTimeStr(endTime.hours, endTime.minutes),
+    async apply() {
+      console.log("Timer edit to save: ", timerEdit);
+      timer.startTime = hhMMfromTimeStr(timerEdit.startTimeStr);
+      if (timerEdit.enabled) {
+        timer.repeatDays = void 0;
+        timer.repeat = timerEdit.repeat;
+      } else {
+        timer.repeat = "daily";
+        timer.repeatDays = 0;
+      }
+      const intParts = timerEdit.repeatInterval.split(":");
+      timer.interval.minutes = parseInt(intParts[1]);
+      timer.interval.hours = parseInt(intParts[0]);
+      timer.interval.seconds = 0;
+      if (timerEdit.enabled && timerEdit.repeatContinously) {
+        timer.mode = timerEdit.repeatMode;
+        if (timerEdit.repeatMode == "repeatSumTimes") {
+          timer.repeatSum = calcSumTimes(timer.startTime, hhMMfromTimeStr(timerEdit.endTimeStr), timer.interval);
+        }
+      } else
+        timer.mode = "daily";
+      console.log("Edited value: ", timer);
+      await bot.setupTimer(timer);
+      fillTimerDetails(timerDetails, timer, idx, bot);
     }
-    if (chkRepeatCont.checked && chkTimerEnabled.checked)
-      timer.mode = "repeatForever";
-    else
-      timer.mode = "daily";
-    const intParts = inpInterval.value.split(":");
-    timer.interval.minutes = parseInt(intParts[1]);
-    timer.interval.hours = parseInt(intParts[0]);
-    timer.interval.seconds = 0;
-    console.log("Edited value: ", timer);
-    await bot.setupTimer(timer);
-    fillTimerDetails(timerDetails, timer, idx, bot);
+  };
+  const editDialog = div({ class: "dialog" }, el("h3", { innerText: `Edit ${idx + 1}. timer` }), div({}, input({
+    id: "timerEnabled",
+    type: "checkbox",
+    checked: timerEdit.enabled,
+    onChange() {
+      timerEdit.enabled = this.checked;
+    }
+  }), label({ innerText: "Enabled", for: "timerEnabled" })), div({}, label({ innerText: "Start at", for: "startTime" }), input({
+    id: "startTime",
+    type: "time",
+    value: timerEdit.startTimeStr,
+    onInput() {
+      timerEdit.startTimeStr = this.value;
+    }
+  })), div({}, label({ innerText: "Repeat", for: "repeat" }), select({
+    id: "repeat",
+    onChange() {
+      timerEdit.repeat = this.value;
+    }
+  }, option({ innerText: "Daily", selected: timer.repeat == "daily", value: "daily" }), option({ innerText: "Once", selected: timer.repeat == "once", value: "once" }))), div({ visible: () => timerEdit.repeat == "daily" }, input({
+    id: "repeatContinously",
+    type: "checkbox",
+    checked: timerEdit.repeatContinously,
+    onChange() {
+      timerEdit.repeatContinously = this.checked;
+    }
+  }), label({ innerText: "Repeat continously", for: "repeatContinously" })), div({ visible: () => timerEdit.repeat == "daily" && timerEdit.repeatContinously }, label({ innerText: "Repeat interval(hh:mm)", for: "interval" }), input({
+    id: "interval",
+    type: "text",
+    value: timerEdit.repeatInterval,
+    onInput() {
+      timerEdit.repeatInterval = this.value;
+    }
+  }), div({}, label({ innerText: "Repeat mode", for: "repeatMode" }), select({
+    id: "repeatMode",
+    onChange() {
+      timerEdit.repeatMode = this.value;
+    }
+  }, option({ innerText: "Forever", selected: timer.mode == "repeatForever", value: "repeatForever" }), option({ innerText: "Until", selected: timer.mode == "repeatSumTimes", value: "repeatSumTimes" })), input({
+    visible: () => timerEdit.repeatMode == "repeatSumTimes",
+    type: "time",
+    value: timerEdit.endTimeStr,
+    onInput() {
+      timerEdit.endTimeStr = this.value;
+    }
+  }))), el("button", { innerText: "Save", async onClick() {
+    this.disabled = true;
+    await timerEdit.apply();
     editDialog.remove();
   } }), el("button", { innerText: "Cancel", onClick: () => editDialog.remove() }));
   document.body.append(editDialog);
