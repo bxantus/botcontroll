@@ -262,7 +262,7 @@ async function editTimer(idx:number, timer:TimerSetup, timerDetails:HTMLElement,
         ),
         el("button", { innerText: "Save", async onClick(){
             // update timer setup, and timer display
-            (this as HTMLButtonElement).disabled = true
+            this.disabled = true
             await timerEdit.apply()
             editDialog.remove()
         }}),
