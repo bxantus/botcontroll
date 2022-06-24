@@ -178,56 +178,32 @@ function fillTimerDetails(timerDetails:HTMLElement, timer:TimerSetup, idx:number
 }
 
 async function editTimer(idx:number, timer:TimerSetup, timerDetails:HTMLElement, bot:SwitchBot) {
-    // shows an editor with absolute positioning
-    const chkTimerEnabled = input({ id:"timerEnabled", type: "checkbox", checked: isTimerEnabled(timer) as any}) 
-    const inputStartTime = input({ id: "startTime", type:"time", value:`${toTimeStr(timer.startTime.hours, timer.startTime.minutes)}`} ) 
-    const selctRepeat = select({ id:"repeat"}, 
-        option({innerText:"Daily", selected:timer.repeat == "daily", value:"daily"}),
-        option({innerText:"Once", selected:timer.repeat == "once", value:"once"}),
-    ) 
-    const chkRepeatCont = input({ id:"repeatContinously", type: "checkbox", checked: timer.mode!="daily"}) 
-    const inpInterval = input({ id: "interval", type:"text", value:`${toTimeStr(timer.interval.hours, timer.interval.minutes)}`} ) 
+    // small viewModel reperesenting the state of the time edit
+    const timerEdit = {
+        enabled: isTimerEnabled(timer),
+        repeat: timer.repeat,
+        startTimeStr: toTimeStr(timer.startTime.hours, timer.startTime.minutes),
+        repeatContinously: timer.mode!="daily",
+        repeatInterval:toTimeStr(timer.interval.hours, timer.interval.minutes),
 
-    const editDialog = div({ class:"dialog"},
-        el("h3", {innerText: `Edit ${idx + 1}. timer`}),
-        div({},
-            chkTimerEnabled,
-            label({ innerText: "Enabled", for:"timerEnabled"})
-        ),
-        div({},
-            label({ innerText: "Start at", for:"startTime"}),
-            inputStartTime
-        ),
-        div({},
-            label({ innerText: "Repeat", for:"repeat"}),
-            selctRepeat
-        ),
-        div({},
-            chkRepeatCont,
-            label({ innerText: "Repeat continously", for:"repeatContinously"})
-        ),
-        div({},
-            label({ innerText: "Repeat interval(hh:mm)", for:"interval"}),
-            inpInterval
-        ),
-        el("button", { innerText: "Save", onClick: async ()=>{
-            // update timer setup, and timer display
-            timer.startTime.hours = parseInt( inputStartTime.value.substring(0, 2))
-            timer.startTime.minutes = parseInt( inputStartTime.value.substring(3))
-            if (chkTimerEnabled.checked) {
+        async apply() {
+            console.log("Timer edit to save: ", timerEdit)
+            timer.startTime.hours = parseInt( timerEdit.startTimeStr.substring(0, 2))
+            timer.startTime.minutes = parseInt( timerEdit.startTimeStr.substring(3))
+            if (timerEdit.enabled) {
                 timer.repeatDays = undefined // this will use the defaults provided
-                timer.repeat = selctRepeat.value == "once" ? "once" : "daily"
+                timer.repeat = timerEdit.repeat
             } else {
                 timer.repeat = "daily"
                 timer.repeatDays = 0
             }
             // mode will be set to continous repeat, only when timer is enabled, otherwise bot will trigger...
-            if (chkRepeatCont.checked && chkTimerEnabled.checked) 
+            if (timerEdit.enabled && timerEdit.repeatContinously) 
                 timer.mode = "repeatForever"  
             else 
                 timer.mode = "daily"
             
-            const intParts = inpInterval.value.split(":")
+            const intParts = timerEdit.repeatInterval.split(":")
             timer.interval.minutes = parseInt(intParts[1])
             timer.interval.hours = parseInt(intParts[0])
             timer.interval.seconds = 0
@@ -235,7 +211,59 @@ async function editTimer(idx:number, timer:TimerSetup, timerDetails:HTMLElement,
             await bot.setupTimer(timer)
 
             fillTimerDetails(timerDetails, timer, idx, bot)
-
+        }
+    }
+    
+    // shows an editor for the timer with absolute positioning
+    const editDialog = div({ class:"dialog"},
+        el("h3", {innerText: `Edit ${idx + 1}. timer`}),
+        div({},
+            input({ 
+                id:"timerEnabled", 
+                type: "checkbox", 
+                checked: timerEdit.enabled, 
+                onChange() { timerEdit.enabled = this.checked }
+            }),
+            label({ innerText: "Enabled", for:"timerEnabled"})
+        ),
+        div({},
+            label({ innerText: "Start at", for:"startTime"}),
+            input({ 
+                id: "startTime", type:"time", 
+                value:timerEdit.startTimeStr, 
+                onInput() { timerEdit.startTimeStr = this.value }
+            } ) 
+        ),
+        div({},
+            label({ innerText: "Repeat", for:"repeat"}),
+            select({ 
+                    id:"repeat",
+                    onChange() { timerEdit.repeat = this.value as "once"|"daily"  }
+                }, 
+                option({innerText:"Daily", selected:timer.repeat == "daily", value:"daily"}),
+                option({innerText:"Once", selected:timer.repeat == "once", value:"once"}),
+            ) 
+        ),
+        div({},
+            input({ 
+                id:"repeatContinously", type: "checkbox", 
+                checked: timerEdit.repeatContinously, 
+                onChange() { timerEdit.repeatContinously = this.checked}
+            }),
+            label({ innerText: "Repeat continously", for:"repeatContinously"})
+        ),
+        div({},
+            label({ innerText: "Repeat interval(hh:mm)", for:"interval"}),
+            input({ 
+                id: "interval", type:"text", 
+                value:timerEdit.repeatInterval, 
+                onInput() { timerEdit.repeatInterval = this.value }
+            } ) 
+        ),
+        el("button", { innerText: "Save", async onClick(){
+            // update timer setup, and timer display
+            (this as HTMLButtonElement).disabled = true
+            await timerEdit.apply()
             editDialog.remove()
         }}),
         el("button", {innerText: "Cancel", onClick: ()=> editDialog.remove()})
