@@ -1,6 +1,6 @@
 import { connect, SwitchBot, TimerSetup, isTimerEnabled } from "./switchbot.ts"
 import { el, div, span, input, option, label, select } from "../../xdom/src/xdom.ts"
-import { calcSumTimes, toEndTime, hhMMfromTimeStr } from "./utils.ts";
+import { calcSumTimes, toEndTime, hhMMfromTimeStr, hhMMToString } from "./utils.ts";
 
 // currently handling only one switchBot, this can be extended if needed
 let switchBot:SwitchBot|undefined
@@ -173,7 +173,7 @@ function fillTimerDetails(timerDetails:HTMLElement, timer:TimerSetup, idx:number
     if (timer.mode == "daily") return;
     timerDetails.append(
         el("p", { innerText: `Repeat at interval: ${toTimeStr(timer.interval.hours, timer.interval.minutes)} `},
-            span({innerText: timer.mode == "repeatForever" ? "forever" : `${timer.repeatSum} times`})
+            span({innerText: timer.mode == "repeatForever" ? "forever" : `until ${hhMMToString(toEndTime(timer.startTime, timer.interval, timer.repeatSum))}`})
         ),
     )
 }

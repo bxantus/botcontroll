@@ -33,3 +33,10 @@ export function hhMMfromTimeStr(timeStr:string):HhMM {
         minutes : parseInt( timeStr.substring(3))
     }
 }
+
+export function hhMMToString(time:HhMM) {
+    let res = `${time.hours}:`
+    if (time.minutes < 10) res += "0"
+        res += time.minutes
+    return res
+} 
