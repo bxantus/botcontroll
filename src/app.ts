@@ -1,5 +1,5 @@
 import { connectAndSendPush, connect, SwitchBot, TimerSetup, isTimerEnabled } from "./switchbot.ts"
-import { el, div, span } from "../../xdom/src/xdom.ts"
+import { el, div, span, input, option, label, select } from "../../xdom/src/xdom.ts"
 
 // currently handling only one switchBot, this can be extended if needed
 let switchBot:SwitchBot|undefined
@@ -7,40 +7,11 @@ let switchBot:SwitchBot|undefined
 window.onload = ()=>{
     console.log(navigator.bluetooth)
     startScreen() 
-    // document.body.append(
-    //     el("button", {
-    //         innerText: "Get device info",
-    //         onClick: async ()=> {
-    //             await ensureConnected()
-    //             if (!bot) return
-    //             await bot.getBasicInfo()
-    //             await bot.getDeviceTime()
-    //         }
-    //     }),
-    //     el("button", { 
-    //         innerText: "Setup repeating timer", 
-    //         onClick: async (ev) => {
-    //             await ensureConnected()
-    //             if (!bot) return
-    //             await bot.setNumberOfTimers(1)
-    //             await bot.setupTimer({
-    //                 index: 0,
-    //                 startTime: { hours: 12, minutes: 53},
-    //                 mode: "repeatForever",
-    //                 repeatSum: 0,
-    //                 interval: { hours: 0, minutes: 15, seconds:0 }
-    //             })
-    //         } 
-    //     }),
-    // )
 }
 
 // Tasks
 // =====
-// - ability to edit current timer config (overlay edit dialog), only accept changes when there are no errors
 // - ability to add new timer (can reause the same edit dialog)
-// - display bluetooth is not available, bluetooth not enabled status when bluetooth isn't ready
-// - react to the canges in bluetooth availability and display connect button when ready
 
 // Lower prio Tasks
 // ================
@@ -207,37 +178,36 @@ function fillTimerDetails(timerDetails:HTMLElement, timer:TimerSetup, idx:number
 }
 
 async function editTimer(idx:number, timer:TimerSetup, timerDetails:HTMLElement, bot:SwitchBot) {
-    // show editor with absolute positioning
-    
-    const chkTimerEnabled = el("input", { id:"timerEnabled", type: "checkbox", checked: isTimerEnabled(timer) as any}) as HTMLInputElement
-    const inputStartTime = el("input", { id: "startTime", type:"time", value:`${toTimeStr(timer.startTime.hours, timer.startTime.minutes)}`} ) as HTMLInputElement
-    const selctRepeat = el("select", { id:"repeat"}, 
-        el("option", {innerText:"Daily", selected:timer.repeat == "daily", value:"daily"}),
-        el("option", {innerText:"Once", selected:timer.repeat == "once", value:"once"}),
-    ) as HTMLSelectElement
-    const chkRepeatCont = el("input", { id:"repeatContinously", type: "checkbox", checked: timer.mode!="daily"}) as HTMLInputElement
-    const inpInterval = el("input", { id: "interval", type:"text", value:`${toTimeStr(timer.interval.hours, timer.interval.minutes)}`} ) as HTMLInputElement
+    // shows an editor with absolute positioning
+    const chkTimerEnabled = input({ id:"timerEnabled", type: "checkbox", checked: isTimerEnabled(timer) as any}) 
+    const inputStartTime = input({ id: "startTime", type:"time", value:`${toTimeStr(timer.startTime.hours, timer.startTime.minutes)}`} ) 
+    const selctRepeat = select({ id:"repeat"}, 
+        option({innerText:"Daily", selected:timer.repeat == "daily", value:"daily"}),
+        option({innerText:"Once", selected:timer.repeat == "once", value:"once"}),
+    ) 
+    const chkRepeatCont = input({ id:"repeatContinously", type: "checkbox", checked: timer.mode!="daily"}) 
+    const inpInterval = input({ id: "interval", type:"text", value:`${toTimeStr(timer.interval.hours, timer.interval.minutes)}`} ) 
 
     const editDialog = div({ class:"dialog"},
         el("h3", {innerText: `Edit ${idx + 1}. timer`}),
         div({},
             chkTimerEnabled,
-            el("label", { innerText: "Enabled", for:"timerEnabled"})
+            label({ innerText: "Enabled", for:"timerEnabled"})
         ),
         div({},
-            el("label", { innerText: "Start at", for:"startTime"}),
+            label({ innerText: "Start at", for:"startTime"}),
             inputStartTime
         ),
         div({},
-            el("label", { innerText: "Repeat", for:"repeat"}),
+            label({ innerText: "Repeat", for:"repeat"}),
             selctRepeat
         ),
         div({},
             chkRepeatCont,
-            el("label", { innerText: "Repeat continously", for:"repeatContinously"})
+            label({ innerText: "Repeat continously", for:"repeatContinously"})
         ),
         div({},
-            el("label", { innerText: "Repeat interval(hh:mm)", for:"interval"}),
+            label({ innerText: "Repeat interval(hh:mm)", for:"interval"}),
             inpInterval
         ),
         el("button", { innerText: "Save", onClick: async ()=>{
