@@ -185,6 +185,8 @@ async function editTimer(idx:number, timer:TimerSetup, timerDetails:HTMLElement,
         startTimeStr: toTimeStr(timer.startTime.hours, timer.startTime.minutes),
         repeatContinously: timer.mode!="daily",
         repeatInterval:toTimeStr(timer.interval.hours, timer.interval.minutes),
+        repeatMode:timer.mode,
+        endTimeStr: toTimeStr(20, 0),
 
         async apply() {
             console.log("Timer edit to save: ", timerEdit)
@@ -263,11 +265,17 @@ async function editTimer(idx:number, timer:TimerSetup, timerDetails:HTMLElement,
                 label({ innerText: "Repeat mode", for:"repeatMode"}),
                 select({ 
                         id:"repeatMode",
-                        onChange() { /* timerEdit.repeat = this.value as "once"|"daily"  */ }
+                        onChange() { timerEdit.repeatMode = this.value as any  }
                     }, 
-                    option({innerText:"Forever", selected:timer.repeat == "daily", value:"daily"}),
-                    option({innerText:"Until", selected:timer.repeat == "once", value:"once"}),
-                )
+                    option({innerText:"Forever", selected:timer.mode == "repeatForever", value:"repeatForever"}),
+                    option({innerText:"Until", selected:timer.mode == "repeatSumTimes", value:"repeatSumTimes"}),
+                ),
+                input({ 
+                    visible: ()=> timerEdit.repeatMode == "repeatSumTimes",
+                    type:"time", 
+                    value:timerEdit.endTimeStr, 
+                    onInput() { timerEdit.endTimeStr = this.value }
+                } )
             )
         ),
         el("button", { innerText: "Save", async onClick(){
