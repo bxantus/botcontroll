@@ -78,7 +78,7 @@ export interface TimerSetup {
     mode:"daily"|"repeatForever"|"repeatSumTimes" 
     // press asumed as default
     action?:"press"|"on"|"off"
-    repeatSum:number // number of times when repeatSum is seleceted
+    repeatSum:number // number of times when repeatSum is selected, counting the initial activation at startTime
     interval:HhMMSS // seconds will be rounded to multiple of 10
 }
 

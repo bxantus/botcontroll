@@ -5,7 +5,7 @@ function toTimeSpan(time:HhMM|HhMMSS) {
 }
 
 export function toEndTime(startTime:HhMM, interval:HhMMSS, times:number):HhMM {
-    const timeSpan = toTimeSpan(startTime) + times * toTimeSpan(interval)
+    const timeSpan = toTimeSpan(startTime) + (times - 1) * toTimeSpan(interval)
     let hours = Math.floor(timeSpan/3600)
     let minutes = Math.floor((timeSpan % 3600) / 60)
     // don't allow to go over midnight
@@ -21,7 +21,7 @@ export function calcSumTimes(startTime:HhMM, endTime:HhMM, interval:HhMMSS) {
     const end = toTimeSpan(endTime)
     if (start > end) return 0
     const int = toTimeSpan(interval)
-    return Math.floor((end - start) / int)
+    return Math.floor((end - start) / int) + 1 // +1 for the initial time the action is executed
 }
 
 /**
