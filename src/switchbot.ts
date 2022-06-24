@@ -57,12 +57,12 @@ function statusMessage(status:number) {
     return (StatusToMessage as any)[status]
 }
 
-interface HhMM {
+export interface HhMM {
     hours:number
     minutes:number
 }
 
-interface HhMMSS {
+export interface HhMMSS {
     hours:number
     minutes:number
     seconds:number  

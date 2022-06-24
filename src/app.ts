@@ -1,5 +1,6 @@
-import { connectAndSendPush, connect, SwitchBot, TimerSetup, isTimerEnabled } from "./switchbot.ts"
+import { connect, SwitchBot, TimerSetup, isTimerEnabled } from "./switchbot.ts"
 import { el, div, span, input, option, label, select } from "../../xdom/src/xdom.ts"
+import { calcSumTimes, toEndTime, hhMMfromTimeStr } from "./utils.ts";
 
 // currently handling only one switchBot, this can be extended if needed
 let switchBot:SwitchBot|undefined
@@ -178,6 +179,9 @@ function fillTimerDetails(timerDetails:HTMLElement, timer:TimerSetup, idx:number
 }
 
 async function editTimer(idx:number, timer:TimerSetup, timerDetails:HTMLElement, bot:SwitchBot) {
+    // end time of repeating intervals
+    const endTime = timer.repeatSum ? toEndTime(timer.startTime, timer.interval, timer.repeatSum) : 
+                    { hours: timer.startTime.hours + 3, minutes:timer.startTime.minutes }
     // small viewModel reperesenting the state of the time edit
     const timerEdit = {
         enabled: isTimerEnabled(timer),
@@ -186,12 +190,11 @@ async function editTimer(idx:number, timer:TimerSetup, timerDetails:HTMLElement,
         repeatContinously: timer.mode!="daily",
         repeatInterval:toTimeStr(timer.interval.hours, timer.interval.minutes),
         repeatMode:timer.mode,
-        endTimeStr: toTimeStr(20, 0),
+        endTimeStr: toTimeStr(endTime.hours, endTime.minutes),
 
         async apply() {
             console.log("Timer edit to save: ", timerEdit)
-            timer.startTime.hours = parseInt( timerEdit.startTimeStr.substring(0, 2))
-            timer.startTime.minutes = parseInt( timerEdit.startTimeStr.substring(3))
+            timer.startTime = hhMMfromTimeStr( timerEdit.startTimeStr)
             if (timerEdit.enabled) {
                 timer.repeatDays = undefined // this will use the defaults provided
                 timer.repeat = timerEdit.repeat
@@ -199,16 +202,20 @@ async function editTimer(idx:number, timer:TimerSetup, timerDetails:HTMLElement,
                 timer.repeat = "daily"
                 timer.repeatDays = 0
             }
-            // mode will be set to continous repeat, only when timer is enabled, otherwise bot will trigger...
-            if (timerEdit.enabled && timerEdit.repeatContinously) 
-                timer.mode = "repeatForever"  
-            else 
-                timer.mode = "daily"
-            
             const intParts = timerEdit.repeatInterval.split(":")
             timer.interval.minutes = parseInt(intParts[1])
             timer.interval.hours = parseInt(intParts[0])
             timer.interval.seconds = 0
+            // mode will be set to continous repeat, only when timer is enabled, otherwise bot will trigger...
+            if (timerEdit.enabled && timerEdit.repeatContinously) {
+                timer.mode = timerEdit.repeatMode  // repeatmode contains if this is a forever repeat or sumTimes mode timer  
+                if (timerEdit.repeatMode == "repeatSumTimes") {
+                    timer.repeatSum = calcSumTimes(timer.startTime, hhMMfromTimeStr(timerEdit.endTimeStr), timer.interval)
+                }
+            } else 
+                timer.mode = "daily"
+            
+            
             console.log("Edited value: ", timer)
             await bot.setupTimer(timer)
 
