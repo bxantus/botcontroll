@@ -244,7 +244,7 @@ async function editTimer(idx:number, timer:TimerSetup, timerDetails:HTMLElement,
                 option({innerText:"Once", selected:timer.repeat == "once", value:"once"}),
             ) 
         ),
-        div({},
+        div({ visible: ()=> timerEdit.repeat == "daily" },
             input({ 
                 id:"repeatContinously", type: "checkbox", 
                 checked: timerEdit.repeatContinously, 
@@ -252,13 +252,23 @@ async function editTimer(idx:number, timer:TimerSetup, timerDetails:HTMLElement,
             }),
             label({ innerText: "Repeat continously", for:"repeatContinously"})
         ),
-        div({},
+        div({ visible: ()=> timerEdit.repeat == "daily" && timerEdit.repeatContinously },
             label({ innerText: "Repeat interval(hh:mm)", for:"interval"}),
             input({ 
                 id: "interval", type:"text", 
                 value:timerEdit.repeatInterval, 
                 onInput() { timerEdit.repeatInterval = this.value }
-            } ) 
+            } ) ,
+            div({},
+                label({ innerText: "Repeat mode", for:"repeatMode"}),
+                select({ 
+                        id:"repeatMode",
+                        onChange() { /* timerEdit.repeat = this.value as "once"|"daily"  */ }
+                    }, 
+                    option({innerText:"Forever", selected:timer.repeat == "daily", value:"daily"}),
+                    option({innerText:"Until", selected:timer.repeat == "once", value:"once"}),
+                )
+            )
         ),
         el("button", { innerText: "Save", async onClick(){
             // update timer setup, and timer display
