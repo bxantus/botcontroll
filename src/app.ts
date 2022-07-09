@@ -220,6 +220,13 @@ async function editTimer(idx:number, timer:TimerSetup, timerDetails:HTMLElement,
             await bot.setupTimer(timer)
 
             fillTimerDetails(timerDetails, timer, idx, bot)
+        },
+
+        setContinousRepeat(continous:boolean) {
+            this.repeatContinously = continous
+            if (continous) {
+                this.repeatMode = timer.repeatSum > 0 ? "repeatSumTimes" : "repeatForever"
+            } else this.repeatMode = "daily"
         }
     }
     
@@ -257,7 +264,7 @@ async function editTimer(idx:number, timer:TimerSetup, timerDetails:HTMLElement,
             input({ 
                 id:"repeatContinously", type: "checkbox", 
                 checked: timerEdit.repeatContinously, 
-                onChange() { timerEdit.repeatContinously = this.checked}
+                onChange() { timerEdit.setContinousRepeat(this.checked)}
             }),
             label({ innerText: "Repeat continously", for:"repeatContinously"})
         ),
@@ -274,8 +281,8 @@ async function editTimer(idx:number, timer:TimerSetup, timerDetails:HTMLElement,
                         id:"repeatMode",
                         onChange() { timerEdit.repeatMode = this.value as any  }
                     }, 
-                    option({innerText:"Forever", selected:timer.mode == "repeatForever", value:"repeatForever"}),
-                    option({innerText:"Until", selected:timer.mode == "repeatSumTimes", value:"repeatSumTimes"}),
+                    option({innerText:"Forever", selected:()=>timerEdit.repeatMode == "repeatForever", value:"repeatForever"}),
+                    option({innerText:"Until",   selected:()=>timerEdit.repeatMode == "repeatSumTimes", value:"repeatSumTimes"}),
                 ),
                 input({ 
                     visible: ()=> timerEdit.repeatMode == "repeatSumTimes",
