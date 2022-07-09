@@ -390,6 +390,7 @@ function el(tagname, props, ...children) {
   if (props?.visible != void 0) {
     if (props.visible instanceof Function) {
       const visibilityUpdater = {
+        name: "visible",
         visible: true,
         get() {
           return this.visible;
@@ -648,12 +649,20 @@ async function editTimer(idx, timer, timerDetails, bot) {
       console.log("Edited value: ", timer);
       await bot.setupTimer(timer);
       fillTimerDetails(timerDetails, timer, idx, bot);
+    },
+    setContinousRepeat(continous) {
+      this.repeatContinously = continous;
+      if (continous) {
+        this.repeatMode = timer.repeatSum > 0 ? "repeatSumTimes" : "repeatForever";
+        this.enabled = true;
+      } else
+        this.repeatMode = "daily";
     }
   };
   const editDialog = div({ class: "dialog" }, el("h3", { innerText: `Edit ${idx + 1}. timer` }), div({}, input({
     id: "timerEnabled",
     type: "checkbox",
-    checked: timerEdit.enabled,
+    checked: () => timerEdit.enabled,
     onChange() {
       timerEdit.enabled = this.checked;
     }
@@ -674,7 +683,7 @@ async function editTimer(idx, timer, timerDetails, bot) {
     type: "checkbox",
     checked: timerEdit.repeatContinously,
     onChange() {
-      timerEdit.repeatContinously = this.checked;
+      timerEdit.setContinousRepeat(this.checked);
     }
   }), label({ innerText: "Repeat continously", for: "repeatContinously" })), div({ visible: () => timerEdit.repeat == "daily" && timerEdit.repeatContinously }, label({ innerText: "Repeat interval(hh:mm)", for: "interval" }), input({
     id: "interval",
@@ -688,7 +697,7 @@ async function editTimer(idx, timer, timerDetails, bot) {
     onChange() {
       timerEdit.repeatMode = this.value;
     }
-  }, option({ innerText: "Forever", selected: timer.mode == "repeatForever", value: "repeatForever" }), option({ innerText: "Until", selected: timer.mode == "repeatSumTimes", value: "repeatSumTimes" })), input({
+  }, option({ innerText: "Forever", selected: () => timerEdit.repeatMode == "repeatForever", value: "repeatForever" }), option({ innerText: "Until", selected: () => timerEdit.repeatMode == "repeatSumTimes", value: "repeatSumTimes" })), input({
     visible: () => timerEdit.repeatMode == "repeatSumTimes",
     type: "time",
     value: timerEdit.endTimeStr,
