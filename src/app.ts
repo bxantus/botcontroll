@@ -226,6 +226,7 @@ async function editTimer(idx:number, timer:TimerSetup, timerDetails:HTMLElement,
             this.repeatContinously = continous
             if (continous) {
                 this.repeatMode = timer.repeatSum > 0 ? "repeatSumTimes" : "repeatForever"
+                this.enabled = true
             } else this.repeatMode = "daily"
         }
     }
@@ -237,7 +238,7 @@ async function editTimer(idx:number, timer:TimerSetup, timerDetails:HTMLElement,
             input({ 
                 id:"timerEnabled", 
                 type: "checkbox", 
-                checked: timerEdit.enabled, 
+                checked: ()=> timerEdit.enabled, 
                 onChange() { timerEdit.enabled = this.checked }
             }),
             label({ innerText: "Enabled", for:"timerEnabled"})
